@@ -66,7 +66,7 @@ const getAllLearningSessionsForUser = async (user_id) => {
   try {
     const query = `
       SELECT
-        start_learning_at AT TIME ZONE 'Europe/Berlin' AS session_date,
+        DATE(start_learning_at AT TIME ZONE 'Europe/Berlin') AS session_date,
         FLOOR(SUM(EXTRACT(EPOCH FROM (end_learning_at - start_learning_at))) / 60) AS total_learning_time_minutes,
         SUM(cards_learned_count) AS total_cards_learned
       FROM
@@ -74,7 +74,7 @@ const getAllLearningSessionsForUser = async (user_id) => {
       WHERE
         user_id = $1
       GROUP BY
-       start_learning_at
+        DATE(start_learning_at AT TIME ZONE 'Europe/Berlin')
       ORDER BY
         session_date DESC;
       `;
