@@ -8,7 +8,7 @@ const cardsRoute = require("./routes/cardsRoute")
 const learningSessionsRoute = require("./routes/learningSessionsRoute")
 
 const corsOptions = {
-  origin: ["http://localhost:3000"],
+  origin: ["http://localhost:3000", "https://flashcardgopnik.onrender.com"],
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   credentials: true,
 };
