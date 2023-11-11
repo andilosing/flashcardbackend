@@ -5,7 +5,7 @@ const learningStackService = require("../services/learningStackService");
 
 const getDueCards = async (req, res) => {
   try {
-    const user_id = 1//req.params.user_id;
+    const user_id = req.userId
 
     if (!user_id) {
       throw new BadRequestError("User ID field is required.");

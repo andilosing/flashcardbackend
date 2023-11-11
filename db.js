@@ -25,6 +25,7 @@ db.connect()
     await createCardsTable();
     await createLearningStackTable();
     await createLearningSessionsTable();
+    await createTokensTable();
   })
   .catch((err) => {
     console.error("Error connecting to PostgreSQL", err);
@@ -50,6 +51,29 @@ const createUsersTable = async () => {
       "Error creating users table with last login tracking:",
       error
     );
+  }
+};
+
+const createTokensTable = async () => {
+  try {
+      const query = `
+          
+CREATE TABLE IF NOT EXISTS tokens (
+  token_id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  token TEXT NOT NULL UNIQUE,
+  expires_at TIMESTAMP NOT NULL,
+  CONSTRAINT fk_user
+                FOREIGN KEY(user_id) 
+                REFERENCES users(user_id)
+                ON DELETE CASCADE
+);
+      `;
+
+      await db.query(query);
+     
+  } catch (error) {
+    console.error("Error creating tokens table:", error);
   }
 };
 

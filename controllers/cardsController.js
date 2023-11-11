@@ -4,6 +4,7 @@ const cardsService = require("../services/cardsService");
 
 const addCard = async (req, res) => {
     try {
+      
       const { deck_id, front_content, back_content } = req.body;
   
       if (!deck_id || !front_content || !back_content) {
