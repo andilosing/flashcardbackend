@@ -9,6 +9,8 @@ require("dotenv").config();
 //   database: process.env.DATABASE_DB_NAME,
 // });
 
+
+//test
 const db = new Client({
     connectionString: process.env.DATABASE_URL,
     ssl: {
