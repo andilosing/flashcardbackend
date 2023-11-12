@@ -52,11 +52,21 @@ class UnauthorizedError extends Error {
     }
 }
 
+class DeepLApiError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'DeepLApiError';
+        this.statusCode = 500;
+        this.customError = true;
+    }
+}
+
 module.exports = {
     ValidationError,
     ConflictError,
     NotFoundError,
     InternalServerError,
     BadRequestError,
-    UnauthorizedError
+    UnauthorizedError,
+    DeepLApiError
 };
