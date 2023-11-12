@@ -19,6 +19,7 @@ const apiRequest = async (url, method, body, apiKey) => {
 
     return data;
   } catch (error) {
+    console.log(error)
     if (error.customError) {
       throw error;
     } else {
