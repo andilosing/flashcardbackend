@@ -3,7 +3,7 @@ const learningStackModel = require("../models/learniningStackModel");
 const cardsModel = require("../models/cardsModel")
 const learningSessionsService = require("./learningSessionsService")
 
-const MAX_CARDS = 50;
+const MAX_CARDS = 15;
 
 
 const addCardToLearningStack = async (user_id, card_id, initial_status) => {
