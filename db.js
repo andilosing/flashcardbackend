@@ -10,7 +10,7 @@ require("dotenv").config();
 // });
 
 
-//testnew
+
 const db = new Client({
     connectionString: process.env.DATABASE_URL,
     ssl: {
@@ -28,6 +28,7 @@ db.connect()
     await createLearningStackTable();
     await createLearningSessionsTable();
     await createTokensTable();
+    await createPreferencesTable();
   })
   .catch((err) => {
     console.error("Error connecting to PostgreSQL", err);
@@ -173,6 +174,27 @@ const createLearningSessionsTable = async () => {
     await db.query(query);
   } catch (error) {
     console.error("Error creating learning sessions table:", error);
+  }
+};
+
+const createPreferencesTable = async () => {
+  try {
+    const query = `
+          CREATE TABLE IF NOT EXISTS preferences (
+            preference_id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            max_cards INTEGER DEFAULT 20, 
+            daily_learning_goal INTEGER DEFAULT 60, 
+            CONSTRAINT fk_user
+                FOREIGN KEY(user_id) 
+                REFERENCES users(user_id)
+                ON DELETE CASCADE
+        );
+        `;
+
+    await db.query(query);
+  } catch (error) {
+    console.error("Error creating preferences table:", error);
   }
 };
 

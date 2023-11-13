@@ -27,25 +27,27 @@ const addCardToUserProgress = async (user_id, card_id, initial_status) => {
   }
 };
 
-const getDueCardsForUser = async (user_id) => {
+const getDueCardsForUser = async (user_id, max_cards) => {
   try {
     const query = `
-      SELECT 
-        ls.progress_id, 
-        ls.status, 
-        c.front_content, 
-        c.back_content
-      FROM 
-        learning_stack AS ls
-      INNER JOIN 
-        cards AS c ON ls.card_id = c.card_id
-      WHERE 
-        ls.user_id = $1 
-        AND ls.next_review_at <= NOW();
-      `;
-    const values = [user_id];
+    SELECT 
+      ls.progress_id, 
+      ls.status, 
+      c.front_content, 
+      c.back_content
+    FROM 
+      learning_stack AS ls
+    INNER JOIN 
+      cards AS c ON ls.card_id = c.card_id
+    WHERE 
+      ls.user_id = $1 
+      AND ls.next_review_at <= NOW()
+    ORDER BY 
+      ls.next_review_at ASC
+    LIMIT $2;
+    `;
+    const values = [user_id, max_cards];
     const { rows } = await db.query(query, values);
-
     return rows; // Gibt die Liste der fälligen Karteikarten für den gegebenen Benutzer zurück
   } catch (error) {
     throw new InternalServerError(

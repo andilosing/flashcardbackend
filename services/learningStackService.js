@@ -22,7 +22,7 @@ const addCardToLearningStack = async (user_id, card_id, initial_status) => {
 
 const getDueCards = async (user_id) => {
   try {
-    const dueCards = await learningStackModel.getDueCardsForUser(user_id);
+    const dueCards = await learningStackModel.getDueCardsForUser(user_id, MAX_CARDS);
     return dueCards;
   } catch (error) {
     if (error.customError) {
@@ -57,7 +57,7 @@ const updateCard = async (progress_id, currentStatus, difficulty) => {
 
 const refillAndRetrieveDueCards = async (user_id) => {
   try {
-    let dueCards = await learningStackModel.getDueCardsForUser(user_id);
+    let dueCards = await learningStackModel.getDueCardsForUser(user_id, MAX_CARDS) ;
 
     if (dueCards.length < MAX_CARDS) {
       const cardsToAddCount = MAX_CARDS - dueCards.length;
@@ -70,8 +70,10 @@ const refillAndRetrieveDueCards = async (user_id) => {
         await learningStackModel.addCardToUserProgress(user_id, card.card_id, 1);
       }
 
-      dueCards = await learningStackModel.getDueCardsForUser(user_id);
+      dueCards = await learningStackModel.getDueCardsForUser(user_id, MAX_CARDS);
     }
+
+    shuffleArray(dueCards);
 
     return dueCards;
   } catch (error) {
@@ -82,6 +84,13 @@ const refillAndRetrieveDueCards = async (user_id) => {
     }
   }
 };
+
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]]; // Tauschen von Elementen
+  }
+}
 
 
 const getNextReviewDate = (status) => {
