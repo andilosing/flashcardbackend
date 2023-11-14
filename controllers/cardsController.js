@@ -22,7 +22,28 @@ const addCard = async (req, res) => {
       handleErrors(error, res);
     }
   };
+
+const getCardsForDeck = async (req, res) => {
+  try {
+    const deckId = req.params.deckId; 
+
+    if (!deckId) {
+      throw new BadRequestError("Deck ID is required.");
+    }
+
+    const cards = await cardsService.getCardsForDeck(deckId);
+
+    res.status(200).json({
+      message: "Cards retrieved successfully",
+      data: { cards },
+    });
+  } catch (error) {
+    console.log(error);
+      handleErrors(error, res);
+  }
+};
   
   module.exports = {
-    addCard
+    addCard,
+    getCardsForDeck
   };

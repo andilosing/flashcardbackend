@@ -27,7 +27,24 @@ const addCard = async (deck_id, front_content, back_content) => {
     }
   };
 
+  const getCardsForDeck = async (deckId) => {
+    try {
+      const cards = await cardsModel.getCardsForDeck(deckId);
+      return cards;
+    } catch (error) {
+      if (error.customError) {
+        throw error;
+      } else {
+        throw new InternalServerError("Error retrieving cards for deck");
+      }
+    }
+  };
+
+  
+
   module.exports = {
-    addCard
+    addCard,
+    getCardsNotInUserProgress,
+    getCardsForDeck
   };
   

@@ -163,7 +163,7 @@ const createLearningSessionsTable = async () => {
             user_id INTEGER NOT NULL,
             start_learning_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             end_learning_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            cards_learned_count INTEGER DEFAULT 0,
+            cards_learned_count INTEGER DEFAULT 1,
             CONSTRAINT fk_user
                 FOREIGN KEY(user_id) 
                 REFERENCES users(user_id)

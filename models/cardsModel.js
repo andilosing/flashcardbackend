@@ -36,8 +36,25 @@ const addCard = async (deck_id, front_content, back_content) => {
     }
   };
 
+  const getCardsForDeck = async (deck_id) => {
+    try {
+      const query = `
+        SELECT *
+        FROM cards
+        WHERE deck_id = $1
+      `;
+      const values = [deck_id];
+      const { rows } = await db.query(query, values);
+  
+      return rows; 
+    } catch (error) {
+      throw new InternalServerError("Database error: cannot retrieve cards for deck.");
+    }
+  };
+
   module.exports = {
    addCard,
-   getCardsNotInUserProgress
+   getCardsNotInUserProgress,
+   getCardsForDeck
   };
   
