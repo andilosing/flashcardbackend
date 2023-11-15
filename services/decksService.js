@@ -52,7 +52,7 @@ function calculatePercentages(goodCount, midCount, badCount, totalCount) {
   // Berechnen der Prozentsätze
   let goodPercentage = (goodCount / totalCount) * 100;
   let midPercentage = (midCount / totalCount) * 100;
-  let badPercentage = (badCount / totalCount) * 100;
+  let badPercentage = ((totalCount - goodCount - midCount) / totalCount) * 100;
 
   // Runden auf die nächste ganze Zahl
   goodPercentage = Math.round(goodPercentage);

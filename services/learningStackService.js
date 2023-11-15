@@ -3,7 +3,7 @@ const learningStackModel = require("../models/learniningStackModel");
 const cardsModel = require("../models/cardsModel")
 const learningSessionsService = require("./learningSessionsService")
 
-const MAX_CARDS = 15;
+const MAX_CARDS = 10;
 
 
 const addCardToLearningStack = async (user_id, card_id, initial_status) => {
@@ -57,24 +57,28 @@ const updateCard = async (progress_id, currentStatus, difficulty) => {
 
 const refillAndRetrieveDueCards = async (user_id) => {
   try {
-    let dueCards = await learningStackModel.getDueCardsForUser(user_id, MAX_CARDS) ;
+    let dueCards = await learningStackModel.getDueCardsForUser(user_id, MAX_CARDS);
 
     if (dueCards.length < MAX_CARDS) {
       const cardsToAddCount = MAX_CARDS - dueCards.length;
+      let availableCards = await cardsModel.getCardsNotInUserProgress(user_id);
 
-      const availableCards = await cardsModel.getCardsNotInUserProgress(user_id);
-      
-      const cardsToAdd = availableCards.slice(0, cardsToAddCount);
-
-      for (const card of cardsToAdd) {
-        await learningStackModel.addCardToUserProgress(user_id, card.card_id, 1);
+      if (availableCards.length === 0) {
+        // Alle Karten sind bereits im Learning Stack
+        // Hole die Karten mit den nächsten Überprüfungsdaten aus dem Lernstapel
+        const futureReviewCards = await learningStackModel.getCardsClosestToReview(user_id, cardsToAddCount);
+        dueCards = [...dueCards, ...futureReviewCards];
+      } else {
+        const cardsToAdd = availableCards.slice(0, cardsToAddCount);
+        for (const card of cardsToAdd) {
+          await learningStackModel.addCardToUserProgress(user_id, card.card_id, 1);
+        }
+        // Nachdem neue Karten hinzugefügt wurden, aktualisiere die Liste der fälligen Karten
+        dueCards = await learningStackModel.getDueCardsForUser(user_id, MAX_CARDS);
       }
-
-      dueCards = await learningStackModel.getDueCardsForUser(user_id, MAX_CARDS);
     }
 
     shuffleArray(dueCards);
-
     return dueCards;
   } catch (error) {
     if (error.customError) {
@@ -84,6 +88,7 @@ const refillAndRetrieveDueCards = async (user_id) => {
     }
   }
 };
+
 
 function shuffleArray(array) {
   for (let i = array.length - 1; i > 0; i--) {
