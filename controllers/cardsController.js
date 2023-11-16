@@ -42,8 +42,29 @@ const getCardsForDeck = async (req, res) => {
       handleErrors(error, res);
   }
 };
+
+const updateCard = async (req, res) => {
+  try {
+    const { card_id, front_content, back_content } = req.body;
+
+    if (!card_id || !front_content || !back_content) {
+      throw new BadRequestError("Card ID, front content, and back content must be provided");
+    }
+
+    const updatedCard = await cardsService.updateCard(card_id, front_content, back_content);
+
+    res.status(200).json({
+      message: "Card updated successfully",
+      data: { card: updatedCard },
+    });
+  } catch (error) {
+    console.log(error);
+    handleErrors(error, res);
+  }
+};
   
   module.exports = {
     addCard,
-    getCardsForDeck
+    getCardsForDeck,
+    updateCard
   };

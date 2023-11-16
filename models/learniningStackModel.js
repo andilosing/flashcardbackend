@@ -89,32 +89,7 @@ const updateCard = async (progress_id, status, next_review_at) => {
   }
 };
 
-const getCardsClosestToReview = async (user_id, limit) => {
-  try {
-    const query = `
-      SELECT 
-        ls.progress_id, 
-        ls.status, 
-        c.front_content, 
-        c.back_content
-      FROM 
-        learning_stack AS ls
-      INNER JOIN 
-        cards AS c ON ls.card_id = c.card_id
-      WHERE 
-        ls.user_id = $1 
-        AND ls.next_review_at >= NOW()  
-      ORDER BY 
-        ls.next_review_at ASC          
-      LIMIT $2;
-    `;
-    const values = [user_id, limit];
-    const { rows } = await db.query(query, values);
-    return rows;
-  } catch (error) {
-    throw new InternalServerError("Database error: cannot retrieve cards closest to review.");
-  }
-};
+
 
 
 
@@ -124,5 +99,5 @@ module.exports = {
   addCardToUserProgress,
   getDueCardsForUser,
   updateCard,
-  getCardsClosestToReview
+
 };

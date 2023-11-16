@@ -40,11 +40,26 @@ const addCard = async (deck_id, front_content, back_content) => {
     }
   };
 
+  const updateCard = async (card_id, front_content, back_content) => {
+    try {
+      const updatedCard = await cardsModel.updateCard(card_id, front_content, back_content);
+      return updatedCard;
+    } catch (error) {
+      if (error.customError) {
+        throw error;
+      } else {
+        throw new InternalServerError("Error updating card");
+      }
+    }
+};
+
+
   
 
   module.exports = {
     addCard,
     getCardsNotInUserProgress,
-    getCardsForDeck
+    getCardsForDeck,
+    updateCard
   };
   

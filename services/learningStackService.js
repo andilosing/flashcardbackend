@@ -64,16 +64,12 @@ const refillAndRetrieveDueCards = async (user_id) => {
       let availableCards = await cardsModel.getCardsNotInUserProgress(user_id);
 
       if (availableCards.length === 0) {
-        // Alle Karten sind bereits im Learning Stack
-        // Hole die Karten mit den nächsten Überprüfungsdaten aus dem Lernstapel
-        const futureReviewCards = await learningStackModel.getCardsClosestToReview(user_id, cardsToAddCount);
-        dueCards = [...dueCards, ...futureReviewCards];
+        
       } else {
         const cardsToAdd = availableCards.slice(0, cardsToAddCount);
         for (const card of cardsToAdd) {
           await learningStackModel.addCardToUserProgress(user_id, card.card_id, 1);
         }
-        // Nachdem neue Karten hinzugefügt wurden, aktualisiere die Liste der fälligen Karten
         dueCards = await learningStackModel.getDueCardsForUser(user_id, MAX_CARDS);
       }
     }
@@ -104,31 +100,31 @@ const getNextReviewDate = (status) => {
     case 1:
       return now;
     case 2:
-      now.setMinutes(now.getMinutes() + 5);
-      return now;
-    case 3:
       now.setMinutes(now.getMinutes() + 30);
       return now;
+    case 3:
+      now.setMinutes(now.getHours() + 6);
+      return now;
     case 4:
-      now.setHours(now.getHours() + 1);
+      now.setHours(now.Date() + 1);
       return now;
     case 5:
-      now.setHours(now.getHours() + 5);
-      return now;
-    case 6:
-      now.setDate(now.getDate() + 1);
-      return now;
-    case 7:
       now.setDate(now.getDate() + 3);
       return now;
-    case 8:
+    case 6:
       now.setDate(now.getDate() + 7);
       return now;
+    case 7:
+      now.setDate(now.getDate() + 14);
+      return now;
+    case 8:
+      now.setDate(now.getMonth() + 1);
+      return now;
     case 9:
-      now.setMonth(now.getDate() + 21);
+      now.setMonth(now.getMonth() + 2);
       return now;
     case 10:
-      now.setMonth(now.getMonth() + 2);
+      now.setMonth(now.getMonth() + 3);
       return now;
     default:
       return now;

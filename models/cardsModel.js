@@ -52,9 +52,32 @@ const addCard = async (deck_id, front_content, back_content) => {
     }
   };
 
+  const updateCard = async (card_id, front_content, back_content) => {
+    try {
+      const query = `
+        UPDATE cards
+        SET front_content = $2,
+            back_content = $3,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE card_id = $1
+        RETURNING *`;
+      const values = [card_id, front_content, back_content];
+      const { rows } = await db.query(query, values);
+      if (!rows[0]) throw new NotFoundError("Card not found or not updated.");
+      return rows[0];
+    } catch (error) {
+      if (!error.customError) {
+        throw new InternalServerError("Database error: cannot update card.");
+      }
+      throw error;
+    }
+  };
+
+
   module.exports = {
    addCard,
    getCardsNotInUserProgress,
-   getCardsForDeck
+   getCardsForDeck,
+   updateCard
   };
   
