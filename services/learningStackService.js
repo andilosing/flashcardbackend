@@ -106,7 +106,7 @@ const getNextReviewDate = (status) => {
       now.setMinutes(now.getHours() + 6);
       return now;
     case 4:
-      now.setHours(now.Date() + 1);
+      now.setDate(now.getDate() + 1);
       return now;
     case 5:
       now.setDate(now.getDate() + 3);
@@ -118,7 +118,7 @@ const getNextReviewDate = (status) => {
       now.setDate(now.getDate() + 14);
       return now;
     case 8:
-      now.setDate(now.getMonth() + 1);
+      now.setMonth(now.getMonth() + 1);
       return now;
     case 9:
       now.setMonth(now.getMonth() + 2);
