@@ -27,9 +27,9 @@ const addCard = async (deck_id, front_content, back_content) => {
     }
   };
 
-  const getCardsForDeck = async (deckId) => {
+  const getCardsForDeck = async (deckId, userId) => {
     try {
-      const cards = await cardsModel.getCardsForDeck(deckId);
+      const cards = await cardsModel.getCardsForDeck(deckId, userId);
       return cards;
     } catch (error) {
       if (error.customError) {
@@ -53,6 +53,19 @@ const addCard = async (deck_id, front_content, back_content) => {
     }
 };
 
+const deleteCards = async (deckId, cardIds, userId) => {
+  try {
+    deletedCards = await cardsModel.deleteCards(deckId, cardIds, userId);
+  } catch (error) {
+    if (error.customError) {
+      throw error;
+    } else {
+      throw new InternalServerError("Error deleting cards");
+    }
+  }
+};
+
+
 
   
 
@@ -60,6 +73,7 @@ const addCard = async (deck_id, front_content, back_content) => {
     addCard,
     getCardsNotInUserProgress,
     getCardsForDeck,
-    updateCard
+    updateCard,
+    deleteCards
   };
   

@@ -26,12 +26,17 @@ const addCard = async (req, res) => {
 const getCardsForDeck = async (req, res) => {
   try {
     const deckId = req.params.deckId; 
+    const user_id = req.userId;
+
+    if (!user_id) {
+      throw new BadRequestError("User ID field is required.");
+    }
 
     if (!deckId) {
       throw new BadRequestError("Deck ID is required.");
     }
 
-    const cards = await cardsService.getCardsForDeck(deckId);
+    const cards = await cardsService.getCardsForDeck(deckId, user_id);
 
     res.status(200).json({
       message: "Cards retrieved successfully",
@@ -62,9 +67,36 @@ const updateCard = async (req, res) => {
     handleErrors(error, res);
   }
 };
+
+const deleteCards = async (req, res) => {
+  try {
+    const { deck_id, card_ids } = req.body;
+    const userId = req.userId; 
+
+    if (!deck_id || !card_ids || card_ids.length === 0) {
+      throw new BadRequestError("Deck ID and card IDs must be provided");
+    }
+
+    if (!userId) {
+      throw new BadRequestError("User ID is required");
+    }
+
+    const cardIdsArray = `{${card_ids.join(",")}}`;
+
+    await cardsService.deleteCards(deck_id, cardIdsArray, userId);
+
+    res.status(200).json({
+      message: "Cards deleted successfully"
+    });
+  } catch (error) {
+    console.log(error);
+    handleErrors(error, res);
+  }
+};
   
   module.exports = {
     addCard,
     getCardsForDeck,
-    updateCard
+    updateCard,
+    deleteCards
   };

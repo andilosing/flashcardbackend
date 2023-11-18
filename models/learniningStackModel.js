@@ -32,6 +32,7 @@ const getDueCardsForUser = async (user_id, max_cards) => {
     const query = `
     SELECT 
       ls.progress_id, 
+      ls.card_id,
       ls.status, 
       c.front_content, 
       c.back_content
