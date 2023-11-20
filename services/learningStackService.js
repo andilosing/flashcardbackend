@@ -34,7 +34,7 @@ const getDueCards = async (user_id) => {
 };
 
 
-const updateCard = async (progress_id, currentStatus, difficulty) => {
+const updateCard = async (user_id, progress_id, currentStatus, difficulty) => {
   try {
     const newStatus = calculateNewStatus(currentStatus, difficulty);
 
@@ -43,7 +43,7 @@ const updateCard = async (progress_id, currentStatus, difficulty) => {
     const updatedCardId = await learningStackModel.updateCard(
       progress_id, newStatus, nextReviewDate);
 
-    await learningSessionsService.manageLearningSession(1)
+    await learningSessionsService.manageLearningSession(user_id)
 
     return updatedCardId;
   } catch (error) {

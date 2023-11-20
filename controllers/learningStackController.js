@@ -23,13 +23,18 @@ const getDueCards = async (req, res) => {
 
 const updateCard = async (req, res) => {
   try {
+    const user_id = req.userId; 
     const { progress_id, status, difficulty } = req.body;
+
+    if (!user_id) {
+      throw new BadRequestError("User ID field is required.");
+    }
 
     if (!progress_id || !difficulty) {
       throw new BadRequestError("All required fields must be provided");
     }
 
-    const cardId = await learningStackService.updateCard(
+    const cardId = await learningStackService.updateCard(user_id,
       progress_id,
       status,
       difficulty
@@ -48,6 +53,10 @@ const setActiveStatusForCards = async (req, res) => {
   try {
     const user_id = req.userId; 
     const { card_ids, is_active } = req.body;
+
+    if (!user_id) {
+      throw new BadRequestError("User ID field is required.");
+    }
 
     if (!card_ids || is_active === undefined) {
       throw new BadRequestError("Card IDs and active status must be provided");
