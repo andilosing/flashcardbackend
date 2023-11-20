@@ -62,6 +62,21 @@ function calculatePercentages(goodCount, midCount, badCount, totalCount) {
   return { good: goodPercentage, mid: midPercentage, bad: badPercentage };
 }
 
+const updateDeckStatus = async (userId, deckId, isActive) => {
+  try {
+    const updatedDeckStatus = await decksModel.updateUserDeckStatus(userId, deckId, isActive);
+    return updatedDeckStatus;
+  } catch (error) {
+    if (error.customError) {
+      throw error;
+    } else {
+      throw new InternalServerError("Error updating deck status");
+    }
+  }
+};
+
+
 module.exports = {
   getDecksForUser,
+  updateDeckStatus
 };

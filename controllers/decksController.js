@@ -20,6 +20,29 @@ const getDecks = async (req, res) => {
   }
 };
 
+const updateDeckStatus = async (req, res) => {
+  try {
+    const user_id = req.userId;
+    const { deckId, isActive } = req.body;
+
+    if (!user_id || !deckId) {
+      throw new BadRequestError("User ID and Deck ID are required.");
+    }
+
+    if (typeof isActive !== 'boolean') {
+      throw new BadRequestError("isActive must be a boolean value (true or false).");
+    }
+
+    const updatedDeckStatus = await decksService.updateDeckStatus(user_id, deckId, isActive);
+    res.status(200).json({
+      message: "Deck status updated successfully",
+    });
+  } catch (error) {
+    handleErrors(error, res);
+  }
+};
+
 module.exports = {
   getDecks,
+  updateDeckStatus
 };

@@ -29,6 +29,8 @@ db.connect()
     await createLearningSessionsTable();
     await createTokensTable();
     await createPreferencesTable();
+    await createUserDeckStatusTable();
+    await createDeckSharesTable();
   })
   .catch((err) => {
     console.error("Error connecting to PostgreSQL", err);
@@ -136,6 +138,7 @@ const createLearningStackTable = async () => {
                 last_reviewed_at TIMESTAMP,
                 next_review_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 review_count INTEGER DEFAULT 0,
+                is_active BOOLEAN DEFAULT true,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 CONSTRAINT fk_user
@@ -195,6 +198,51 @@ const createPreferencesTable = async () => {
     await db.query(query);
   } catch (error) {
     console.error("Error creating preferences table:", error);
+  }
+};
+
+const createUserDeckStatusTable = async () => {
+  try {
+    const query = `
+    CREATE TABLE IF NOT EXISTS user_deck_status (
+      user_id INTEGER NOT NULL,
+      deck_id INTEGER NOT NULL,
+      is_active BOOLEAN DEFAULT false,
+      PRIMARY KEY (user_id, deck_id),
+      FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+      FOREIGN KEY (deck_id) REFERENCES decks(deck_id) ON DELETE CASCADE
+    );
+        `;
+
+    await db.query(query);
+  } catch (error) {
+    console.error("Error creating user deck status table:", error);
+  }
+};
+
+const createDeckSharesTable = async () => {
+  try {
+    const query = `
+    CREATE TABLE IF NOT EXISTS deck_shares (
+      share_id SERIAL PRIMARY KEY,
+      deck_id INTEGER NOT NULL,
+      shared_with_user_id INTEGER NOT NULL,
+      permission_level VARCHAR(10) NOT NULL CHECK (permission_level IN ('read', 'write')),
+      shared_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT fk_deck
+          FOREIGN KEY(deck_id)
+          REFERENCES decks(deck_id)
+          ON DELETE CASCADE,
+      CONSTRAINT fk_user
+          FOREIGN KEY(shared_with_user_id)
+          REFERENCES users(user_id)
+          ON DELETE CASCADE
+    );
+        `;
+
+    await db.query(query);
+  } catch (error) {
+    console.error("Error creating deck shares table:", error);
   }
 };
 

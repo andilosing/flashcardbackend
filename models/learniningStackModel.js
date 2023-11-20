@@ -40,12 +40,17 @@ const getDueCardsForUser = async (user_id, max_cards) => {
       learning_stack AS ls
     INNER JOIN 
       cards AS c ON ls.card_id = c.card_id
+    INNER JOIN
+      user_deck_status uds ON c.deck_id = uds.deck_id AND uds.user_id = $1
     WHERE 
       ls.user_id = $1 
       AND ls.next_review_at <= NOW()
+      AND ls.is_active = true
+      AND uds.is_active = true
     ORDER BY 
       ls.next_review_at ASC
     LIMIT $2;
+
     `;
     const values = [user_id, max_cards];
     const { rows } = await db.query(query, values);
@@ -90,15 +95,55 @@ const updateCard = async (progress_id, status, next_review_at) => {
   }
 };
 
+const checkCardInLearningStack = async (user_id, card_id) => {
+  try {
+    const query = `
+      SELECT progress_id FROM learning_stack
+      WHERE user_id = $1 AND card_id = $2;
+    `;
+    const { rows } = await db.query(query, [user_id, card_id]);
+    return rows.length > 0 ? rows[0] : null;
+  } catch (error) {
+    console.log(error);
+    throw new InternalServerError("Database error in checkCardInLearningStack");
+  }
+};
 
 
+const updateCardActiveStatus = async (user_id, card_id, is_active) => {
+  try {
+    const query = `
+      UPDATE learning_stack
+      SET is_active = $3, next_review_at = CASE WHEN $3 = true THEN NOW() ELSE next_review_at END
+      WHERE user_id = $1 AND card_id = $2;
+    `;
+    await db.query(query, [user_id, card_id, is_active]);
+  } catch (error) {
+    console.log(error);
+    throw new InternalServerError("Database error in updateCardActiveStatus");
+  }
+};
 
 
+const addCardToLearningStackWithStatus = async (user_id, card_id, is_active) => {
+  try {
+    const query = `
+      INSERT INTO learning_stack (user_id, card_id, status, is_active)
+      VALUES ($1, $2, 1, $3)  
+    `;
+    await db.query(query, [user_id, card_id, is_active]);
+  } catch (error) {
+    console.log(error);
+    throw new InternalServerError("Database error in addCardToLearningStackWithStatus");
+  }
+};
 
 
 module.exports = {
   addCardToUserProgress,
   getDueCardsForUser,
   updateCard,
-
+  checkCardInLearningStack,
+  updateCardActiveStatus,
+  addCardToLearningStackWithStatus
 };

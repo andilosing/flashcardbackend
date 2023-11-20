@@ -6,12 +6,18 @@ const addCard = async (req, res) => {
     try {
       
       const { deck_id, front_content, back_content } = req.body;
+
+      const user_id = req.userId;
+
+      if (!user_id) {
+        throw new BadRequestError("User ID field is required.");
+      }
   
       if (!deck_id || !front_content || !back_content) {
         throw new BadRequestError("All required fields must be provided");
       }
   
-      const card = await cardsService.addCard(deck_id, front_content, back_content);
+      const card = await cardsService.addCard(user_id, deck_id, front_content, back_content);
   
       res.status(201).json({
         message: "Card added successfully",
@@ -36,11 +42,11 @@ const getCardsForDeck = async (req, res) => {
       throw new BadRequestError("Deck ID is required.");
     }
 
-    const cards = await cardsService.getCardsForDeck(deckId, user_id);
+    const result = await cardsService.getCardsForDeck(deckId, user_id);
 
     res.status(200).json({
       message: "Cards retrieved successfully",
-      data: { cards },
+      data: { cards: result.cards, permissions: result.permissions },
     });
   } catch (error) {
     console.log(error);
@@ -52,11 +58,17 @@ const updateCard = async (req, res) => {
   try {
     const { card_id, front_content, back_content } = req.body;
 
+    const user_id = req.userId;
+
+    if (!user_id) {
+      throw new BadRequestError("User ID field is required.");
+    }
+
     if (!card_id || !front_content || !back_content) {
       throw new BadRequestError("Card ID, front content, and back content must be provided");
     }
 
-    const updatedCard = await cardsService.updateCard(card_id, front_content, back_content);
+    const updatedCard = await cardsService.updateCard(user_id, card_id, front_content, back_content);
 
     res.status(200).json({
       message: "Card updated successfully",

@@ -73,7 +73,6 @@ const refillAndRetrieveDueCards = async (user_id) => {
         dueCards = await learningStackModel.getDueCardsForUser(user_id, MAX_CARDS);
       }
     }
-
     shuffleArray(dueCards);
     return dueCards;
   } catch (error) {
@@ -154,6 +153,24 @@ const calculateNewStatus = (currentStatus, difficulty) => {
   return Math.min(Math.max(newStatus, 1), 10);
 };
 
+const setActiveStatusForCards = async (user_id, card_ids, is_active) => {
+  try {
+    for (const card_id of card_ids) {
+      const existingEntry = await learningStackModel.checkCardInLearningStack(user_id, card_id);
+
+      if (existingEntry) {
+        await learningStackModel.updateCardActiveStatus(user_id, card_id, is_active);
+      } else {
+        await learningStackModel.addCardToLearningStackWithStatus(user_id, card_id, is_active);
+      }
+    }
+  } catch (error) {
+    console.log(error);
+    throw new InternalServerError("Error updating active status for cards");
+  }
+};
+
+
 
 
 
@@ -161,5 +178,6 @@ module.exports = {
   addCardToLearningStack,
   getDueCards,
   updateCard,
-  refillAndRetrieveDueCards
+  refillAndRetrieveDueCards,
+  setActiveStatusForCards
 };

@@ -2,14 +2,18 @@ const db = require("../db");
 const {
   InternalServerError,
   NotFoundError,
+  UnauthorizedError
 } = require("../errors/customErrors");
 
-const addCard = async (deck_id, front_content, back_content) => {
+const addCard = async (user_id, deck_id, front_content, back_content) => {
   try {
+    await checkDeckPermissions(user_id, deck_id);
+
     const query = `
-        INSERT INTO cards (deck_id, front_content, back_content)
-        VALUES ($1, $2, $3)
-        RETURNING *`;
+      INSERT INTO cards (deck_id, front_content, back_content)
+      VALUES ($1, $2, $3)
+      RETURNING *;
+    `;
     const values = [deck_id, front_content, back_content];
     const { rows } = await db.query(query, values);
     if (!rows[0]) throw new NotFoundError("Card not added to database.");
@@ -21,6 +25,7 @@ const addCard = async (deck_id, front_content, back_content) => {
     throw error;
   }
 };
+
 
 const getCardsNotInUserProgress = async (user_id) => {
   try {
@@ -41,35 +46,62 @@ const getCardsNotInUserProgress = async (user_id) => {
   }
 };
 
+
+
+
 const getCardsForDeck = async (deck_id, user_id) => {
   try {
     const query = `
-      SELECT cards.*, 
-             CASE WHEN ls.card_id IS NOT NULL THEN true ELSE false END as in_learning_stack
-      FROM cards
-      LEFT JOIN learning_stack ls ON cards.card_id = ls.card_id AND ls.user_id = $2
-      WHERE cards.deck_id = $1;
+    SELECT 
+      cards.*,
+      CASE 
+        WHEN ls.card_id IS NOT NULL THEN ls.is_active 
+        ELSE NULL 
+      END as is_active
+    FROM 
+      cards
+    LEFT JOIN 
+      learning_stack ls ON cards.card_id = ls.card_id AND ls.user_id = $2
+    LEFT JOIN 
+      deck_shares ds ON cards.deck_id = ds.deck_id AND ds.shared_with_user_id = $2
+    LEFT JOIN
+      decks d ON cards.deck_id = d.deck_id
+    WHERE 
+      cards.deck_id = $1;
+  
     `;
     const values = [deck_id, user_id];
     const { rows } = await db.query(query, values);
 
     return rows;
   } catch (error) {
+    console.log(error)
     throw new InternalServerError(
       "Database error: cannot retrieve cards for deck."
     );
   }
 };
 
-const updateCard = async (card_id, front_content, back_content) => {
+
+
+const updateCard = async (user_id, card_id, front_content, back_content) => {
   try {
+    const deckQuery = `
+      SELECT deck_id FROM cards WHERE card_id = $1;
+    `;
+    const deckResult = await db.query(deckQuery, [card_id]);
+    const deckId = deckResult.rows[0]?.deck_id;
+    if (!deckId) throw new NotFoundError("Card not found.");
+
+    await checkDeckPermissions(user_id, deckId);
+
+
     const query = `
-        UPDATE cards
-        SET front_content = $2,
-            back_content = $3,
-            updated_at = CURRENT_TIMESTAMP
-        WHERE card_id = $1
-        RETURNING *`;
+      UPDATE cards
+      SET front_content = $2, back_content = $3, updated_at = CURRENT_TIMESTAMP
+      WHERE card_id = $1
+      RETURNING *;
+    `;
     const values = [card_id, front_content, back_content];
     const { rows } = await db.query(query, values);
     if (!rows[0]) throw new NotFoundError("Card not found or not updated.");
@@ -81,6 +113,7 @@ const updateCard = async (card_id, front_content, back_content) => {
     throw error;
   }
 };
+
 
 const deleteCards = async (deckId, cardIds, userId) => {
   try {
@@ -111,6 +144,28 @@ const deleteCards = async (deckId, cardIds, userId) => {
     }
     throw error;
   }
+};
+
+const checkDeckPermissions = async (user_id, deck_id) => {
+  const permissionQuery = `
+    SELECT 
+      (d.user_id = $1) AS is_owner,
+      ds.permission_level
+    FROM 
+      decks d
+    LEFT JOIN 
+      deck_shares ds ON d.deck_id = ds.deck_id AND ds.shared_with_user_id = $1
+    WHERE 
+      d.deck_id = $2;
+  `;
+  const permissionValues = [user_id, deck_id];
+  const permissionResult = await db.query(permissionQuery, permissionValues);
+
+  const permission = permissionResult.rows[0];
+  if (!permission || (!permission.is_owner && permission.permission_level !== 'write')) {
+    throw new UnauthorizedError("Unauthorized to perform action on this deck.");
+  }
+  return permission;
 };
 
 module.exports = {

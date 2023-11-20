@@ -25,7 +25,6 @@ const updateCard = async (req, res) => {
   try {
     const { progress_id, status, difficulty } = req.body;
 
-    // Validierung, ob alle erforderlichen Felder vorhanden sind
     if (!progress_id || !difficulty) {
       throw new BadRequestError("All required fields must be provided");
     }
@@ -45,7 +44,27 @@ const updateCard = async (req, res) => {
   }
 };
 
+const setActiveStatusForCards = async (req, res) => {
+  try {
+    const user_id = req.userId; 
+    const { card_ids, is_active } = req.body;
+
+    if (!card_ids || is_active === undefined) {
+      throw new BadRequestError("Card IDs and active status must be provided");
+    }
+
+    await learningStackService.setActiveStatusForCards(user_id, card_ids, is_active);
+    
+    res.status(200).json({
+      message: "Active status for cards updated successfully",
+    });
+  } catch (error) {
+    handleErrors(error, res);
+  }
+};
+
 module.exports = {
   getDueCards,
-  updateCard
+  updateCard,
+  setActiveStatusForCards
 };
