@@ -30,21 +30,24 @@ const addCard = async (user_id, deck_id, front_content, back_content) => {
 const getCardsNotInUserProgress = async (user_id) => {
   try {
     const query = `
-        SELECT c.*
-        FROM cards c
-        LEFT JOIN learning_stack up ON c.card_id = up.card_id AND up.user_id = $1
-        WHERE up.progress_id IS NULL;
-      `;
+      SELECT c.*
+      FROM cards c
+      JOIN decks d ON c.deck_id = d.deck_id
+      LEFT JOIN learning_stack ls ON c.card_id = ls.card_id AND ls.user_id = $1
+      JOIN user_deck_status uds ON d.deck_id = uds.deck_id AND uds.user_id = $1
+      WHERE ls.progress_id IS NULL AND uds.is_active = true;
+    `;
     const values = [user_id];
     const { rows } = await db.query(query, values);
 
-    return rows; // Gibt die Liste von Karten zurück, die noch nicht in user_progress für den gegebenen Benutzer sind
+    return rows; // Gibt die Liste von Karten zurück, die noch nicht in user_progress für den gegebenen Benutzer sind und aus aktiven Decks stammen
   } catch (error) {
     throw new InternalServerError(
-      "Database error: cannot retrieve cards not in user progress."
+      "Database error: cannot retrieve cards not in user progress from active decks."
     );
   }
 };
+
 
 
 
