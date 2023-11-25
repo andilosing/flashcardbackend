@@ -13,6 +13,8 @@ const login = async (username, password) => {
         throw new ValidationError("Username or password invalid.");
     }
 
+    await userModel.updateLastLogin(user.user_id);
+
     const token = tokenService.generateToken(user);
     const savedToken = await tokensModel.saveToken(user.user_id, token);
 

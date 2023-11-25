@@ -8,36 +8,36 @@ const getDecksByUserId = async (user_id) => {
   try {
     const query = `
     SELECT
-      d.deck_id,
-      d.name,
-      u.username AS owner_username, 
-      COUNT(DISTINCT c.card_id)::int AS total_card_count,
-      COUNT(DISTINCT ls.card_id)::int AS learning_stack_count,
-      SUM(CASE WHEN ls.next_review_at <= NOW() AND ls.user_id = $1 THEN 1 ELSE 0 END)::int AS due_cards_count,
-      SUM(CASE WHEN ls.status BETWEEN 1 AND 4 AND ls.user_id = $1 THEN 1 ELSE 0 END)::int AS bad_status_count,
-      SUM(CASE WHEN ls.status BETWEEN 5 AND 7 AND ls.user_id = $1 THEN 1 ELSE 0 END)::int AS mid_status_count,
-      SUM(CASE WHEN ls.status BETWEEN 8 AND 10 AND ls.user_id = $1 THEN 1 ELSE 0 END)::int AS good_status_count,
-      TO_CHAR(d.created_at, 'DD TMMonth YYYY') AS created_at,
-      (ds.shared_with_user_id IS NOT NULL) AS is_shared,
-      COALESCE(uds.is_active, NULL) AS is_active 
+        d.deck_id,
+        d.name,
+        u.username AS owner_username, 
+        COUNT(DISTINCT c.card_id)::int AS total_card_count,
+        COUNT(DISTINCT CASE WHEN ls.user_id = $1 THEN ls.card_id ELSE NULL END)::int AS learning_stack_count,
+        SUM(CASE WHEN ls.next_review_at <= NOW() AND ls.user_id = $1 THEN 1 ELSE 0 END)::int AS due_cards_count,
+        SUM(CASE WHEN ls.status BETWEEN 1 AND 4 AND ls.user_id = $1 THEN 1 ELSE 0 END)::int AS bad_status_count,
+        SUM(CASE WHEN ls.status BETWEEN 5 AND 7 AND ls.user_id = $1 THEN 1 ELSE 0 END)::int AS mid_status_count,
+        SUM(CASE WHEN ls.status BETWEEN 8 AND 10 AND ls.user_id = $1 THEN 1 ELSE 0 END)::int AS good_status_count,
+        TO_CHAR(d.created_at, 'DD TMMonth YYYY') AS created_at,
+        (ds.shared_with_user_id IS NOT NULL) AS is_shared,
+        COALESCE(uds.is_active, NULL) AS is_active 
     FROM 
-      decks d
+        decks d
     INNER JOIN 
-      users u ON d.user_id = u.user_id  
+        users u ON d.user_id = u.user_id  
     LEFT JOIN 
-      cards c ON d.deck_id = c.deck_id
+        cards c ON d.deck_id = c.deck_id
     LEFT JOIN 
-      learning_stack ls ON c.card_id = ls.card_id
+        learning_stack ls ON c.card_id = ls.card_id
     LEFT JOIN
-      deck_shares ds ON d.deck_id = ds.deck_id AND ds.shared_with_user_id = $1
+        deck_shares ds ON d.deck_id = ds.deck_id AND ds.shared_with_user_id = $1
     LEFT JOIN
-      user_deck_status uds ON d.deck_id = uds.deck_id AND uds.user_id = $1
+        user_deck_status uds ON d.deck_id = uds.deck_id AND uds.user_id = $1
     WHERE 
-      d.user_id = $1 OR ds.shared_with_user_id = $1
+        d.user_id = $1 OR ds.shared_with_user_id = $1
     GROUP BY 
-      d.deck_id, u.username, ds.shared_with_user_id, uds.is_active
+        d.deck_id, u.username, ds.shared_with_user_id, uds.is_active
     ORDER BY 
-      d.created_at;
+        d.created_at;
     `;
     const values = [user_id];
     const { rows } = await db.query(query, values);
@@ -100,6 +100,44 @@ const getDecksByUserId = async (user_id) => {
       throw new InternalServerError("Database error: cannot update deck status.");
     }
   };
+
+  const createDeck = async (userId, deckName) => {
+    try {
+        await db.query('BEGIN'); // Beginnen einer Transaktion
+
+        const deckQuery = `
+            INSERT INTO decks (name, user_id)
+            VALUES ($1, $2)
+            RETURNING *;
+        `;
+        const deckValues = [deckName, userId];
+        const deckResult = await db.query(deckQuery, deckValues);
+        const newDeck = deckResult.rows[0];
+
+        const statusQuery = `
+            INSERT INTO user_deck_status (user_id, deck_id)
+            VALUES ($1, $2)
+            RETURNING *;
+        `;
+        const statusValues = [userId, newDeck.deck_id];
+        const statusResult = await db.query(statusQuery, statusValues);
+        const newUserDeckStatus = statusResult.rows[0];
+
+        await db.query('COMMIT'); // Bestätigen der Transaktion
+
+        return {
+            deck: newDeck,
+            userDeckStatus: newUserDeckStatus
+        };
+    } catch (error) {
+        await db.query('ROLLBACK'); // Rollback im Fehlerfall
+        console.error("Error creating new deck:", error);
+        throw new InternalServerError("Database error: cannot create new deck.");
+    }
+};
+
+
+
   
 
 
@@ -107,5 +145,6 @@ const getDecksByUserId = async (user_id) => {
 module.exports = {
   getDecksByUserId,
   getDeckPermissions,
-  updateUserDeckStatus
+  updateUserDeckStatus,
+  createDeck
 };

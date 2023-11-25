@@ -3,6 +3,7 @@ const router = express.Router()
 const decksController = require("../controllers/decksController")
 
 router.get("/", decksController.getDecks)
-router.post("/status/", decksController.updateDeckStatus)
+router.put("/status/", decksController.updateDeckStatus)
+router.post("/", decksController.createDeck)
 
 module.exports = router;

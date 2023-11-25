@@ -31,9 +31,21 @@ const getUserFromUsername = async (username) => {
     }
 };
 
+const updateLastLogin = async (userId) => {
+    try {
+        await db.query('UPDATE users SET last_login_at = NOW() WHERE user_id = $1', [userId]);
+    } catch (error) {
+        console.error('Error updating last login:', error);
+        throw new InternalServerError();
+    }
+};
+
+
+
 module.exports = {
     getUserFromId,
     getUserFromEmail,
-    getUserFromUsername
+    getUserFromUsername,
+    updateLastLogin
 
 }

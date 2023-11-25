@@ -75,8 +75,23 @@ const updateDeckStatus = async (userId, deckId, isActive) => {
   }
 };
 
+const createDeck = async (userId, deckName) => {
+  try {
+    const newDeck = await decksModel.createDeck(userId, deckName);
+    return newDeck;
+  } catch (error) {
+    console.log(error)
+    if (error.customError) {
+      throw error;
+    } else {
+      throw new InternalServerError("Error creating new deck");
+    }
+  }
+};
+
 
 module.exports = {
   getDecksForUser,
-  updateDeckStatus
+  updateDeckStatus,
+  createDeck
 };
