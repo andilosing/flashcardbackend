@@ -9,8 +9,6 @@ require("dotenv").config();
 //   database: process.env.DATABASE_DB_NAME,
 // });
 
-
-
 const db = new Client({
     connectionString: process.env.DATABASE_URL,
     ssl: {
@@ -31,6 +29,8 @@ db.connect()
     await createPreferencesTable();
     await createUserDeckStatusTable();
     await createDeckSharesTable();
+    await createRequestsTable();
+    await createUserNotificationsChecksTable();
   })
   .catch((err) => {
     console.error("Error connecting to PostgreSQL", err);
@@ -61,7 +61,7 @@ const createUsersTable = async () => {
 
 const createTokensTable = async () => {
   try {
-      const query = `
+    const query = `
           
 CREATE TABLE IF NOT EXISTS tokens (
   token_id SERIAL PRIMARY KEY,
@@ -75,8 +75,7 @@ CREATE TABLE IF NOT EXISTS tokens (
 );
       `;
 
-      await db.query(query);
-     
+    await db.query(query);
   } catch (error) {
     console.error("Error creating tokens table:", error);
   }
@@ -246,62 +245,48 @@ const createDeckSharesTable = async () => {
   }
 };
 
+const createRequestsTable = async () => {
+  try {
+    const query = `
+    CREATE TABLE IF NOT EXISTS requests (
+      request_id SERIAL PRIMARY KEY,
+      request_type VARCHAR(255) NOT NULL,
+      sender_id INTEGER NOT NULL,
+      receiver_id INTEGER NOT NULL,
+      additional_data JSON, 
+      status VARCHAR(50) DEFAULT 'pending',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      responded_at TIMESTAMP,
+      CONSTRAINT fk_sender FOREIGN KEY (sender_id) REFERENCES users (user_id),
+      CONSTRAINT fk_receiver FOREIGN KEY (receiver_id) REFERENCES users (user_id)
+    );
+        `;
+
+    await db.query(query);
+  } catch (error) {
+    console.error("Error creating requests table:", error);
+  }
+};
+
+
+const createUserNotificationsChecksTable = async () => {
+  try {
+    const query = `
+    CREATE TABLE IF NOT EXISTS user_notifications_checks (
+      check_id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      notifications_loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      notifications_viewed_at TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE
+    );
+        `;
+
+    await db.query(query);
+  } catch (error) {
+    console.error("Error creating user_notifications_checks table:", error);
+  }
+};
+
+
+
 module.exports = db;
-
-/* 
-Um eine Datenbankstruktur für eine Karteikarten-App zu entwerfen, die Ihre Anforderungen erfüllt, können wir ein relationales Datenbankmanagementsystem (RDBMS) wie MySQL, PostgreSQL oder SQLite verwenden. Hier ist ein einfacher Entwurf, der Ihre Bedürfnisse widerspiegelt:
-
-Tabellenstruktur:
-
-Users
-
-user_id (Primary Key, Integer, Auto-Increment)
-username (Varchar)
-password_hash (Varchar)
-email (Varchar)
-created_at (Timestamp)
-updated_at (Timestamp)
-Decks (Stapel)
-
-deck_id (Primary Key, Integer, Auto-Increment)
-user_id (Foreign Key, Integer)
-title (Varchar)
-description (Text)
-created_at (Timestamp)
-updated_at (Timestamp)
-public (Boolean) – um anzugeben, ob der Stapel geteilt ist oder nicht
-Cards (Karteikarten)
-
-card_id (Primary Key, Integer, Auto-Increment)
-deck_id (Foreign Key, Integer)
-front_content (Text)
-back_content (Text)
-status (Enum ['new', 'learning', 'reviewing', 'known']) – Status der Karteikarte
-next_review_at (Timestamp) – Wann die Karteikarte wieder vorgeschlagen wird
-created_at (Timestamp)
-updated_at (Timestamp)
-Deck_Shares (Teilungen der Stapel)
-
-share_id (Primary Key, Integer, Auto-Increment)
-deck_id (Foreign Key, Integer)
-user_id (Foreign Key, Integer) – ID des Benutzers, mit dem der Stapel geteilt wird
-permission_level (Enum ['read', 'write']) – Berechtigungen für den geteilten Nutzer
-created_at (Timestamp)
-User_Deck (Zuordnungstabelle für Benutzer und Stapel)
-
-user_deck_id (Primary Key, Integer, Auto-Increment)
-user_id (Foreign Key, Integer)
-deck_id (Foreign Key, Integer)
-created_at (Timestamp)
-
-User_Progress (Benutzerfortschritt)
-progress_id (Primary Key, Integer, Auto-Increment)
-card_id (Foreign Key, Integer) – Verweist auf die Karteikarte
-user_id (Foreign Key, Integer) – Verweist auf den Benutzer, der lernt
-status (Enum ['new', 'learning', 'reviewing', 'known']) – Aktueller Lernstatus
-last_reviewed_at (Timestamp) – Wann die Karte zuletzt überprüft wurde
-next_review_at (Timestamp) – Wann die Karte das nächste Mal überprüft werden soll
-created_at (Timestamp)
-updated_at (Timestamp)
-
-*/

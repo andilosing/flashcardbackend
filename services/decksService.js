@@ -1,5 +1,6 @@
 const { InternalServerError } = require("../errors/customErrors");
 const decksModel = require("../models/decksModel");
+const requestsModel = require("../models/requestsModel")
 
 const getDecksForUser = async (user_id) => {
   try {
@@ -90,8 +91,54 @@ const createDeck = async (userId, deckName) => {
 };
 
 
+
+const getDeckSharesService = async (deck_id, user_id) => {
+  try {
+    const shares = await decksModel.getDeckShares(deck_id, user_id);
+
+    const openRequests = await requestsModel.getOpenRequestsForDeck(deck_id, user_id);
+
+    return {
+      shares: shares,
+      openRequests: openRequests
+    };
+  } catch (error) {
+    console.log(error);
+    if (error.customError) {
+      throw error;
+    } else {
+      throw new InternalServerError("Error retrieving deck shares information");
+    }
+  }
+};
+
+const updateSharePermission = async (userId, shareId, newPermissionLevel) => {
+  try {
+   
+    const isUserAuthorized = await decksModel.checkUserAuthorizationForShare(userId, shareId);
+    if (!isUserAuthorized) {
+      throw new UnauthorizedError("User is not authorized to update this share.");
+    }
+    
+    const updatedShare = await decksModel.updateSharePermission(shareId, newPermissionLevel);
+    
+    return updatedShare;
+  } catch (error) {
+    console.log(error);
+    if (error.customError) {
+      throw error;
+    } else {
+      throw new InternalServerError("Error updating share permission");
+    }
+  }
+};
+
+
+
 module.exports = {
   getDecksForUser,
   updateDeckStatus,
-  createDeck
+  createDeck,
+  getDeckSharesService,
+  updateSharePermission
 };

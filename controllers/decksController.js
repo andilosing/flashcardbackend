@@ -61,8 +61,61 @@ const createDeck = async (req, res) => {
   }
 };
 
+const getDeckShares = async (req, res) => {
+  try {
+    const deck_id = req.params.deckId;
+    const user_id = req.userId;
+
+    if (!user_id || !deck_id) {
+      throw new BadRequestError("User ID and Deck ID are required.");
+    }
+
+    const { shares, openRequests } = await decksService.getDeckSharesService(deck_id, user_id);
+
+    res.status(200).json({
+      message: "Deck shares and open requests retrieved successfully",
+      data: { 
+        shares: shares, 
+        openRequests: openRequests 
+      },
+    });
+  } catch (error) {
+    handleErrors(error, res);
+  }
+};
+
+const updateSharePermission = async (req, res) => {
+  try {
+
+    const { shareId } = req.params; 
+    const { newPermissionLevel } = req.body; 
+    const userId = req.userId;
+
+    if (!userId || !shareId) {
+      throw new BadRequestError("User ID and Share ID are required.");
+    }
+
+    if (!['write', 'read'].includes(newPermissionLevel)) {
+      throw new BadRequestError("Invalid permission level. Must be either 'write' or 'read'.");
+    }
+
+    const share = await decksService.updateSharePermission(userId, shareId, newPermissionLevel);
+
+    res.status(200).json({
+      message: "Share permission updated successfully",
+      data: {share: share}
+    });
+  } catch (error) {
+    handleErrors(error, res);
+  }
+};
+
+
+
 module.exports = {
   getDecks,
   updateDeckStatus,
-  createDeck
+  createDeck,
+  getDeckShares,
+  updateSharePermission
 };
