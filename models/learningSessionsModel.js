@@ -78,6 +78,7 @@ const getAllLearningSessionsForUser = async (user_id) => {
       ORDER BY
         session_date DESC;
       `;
+      
     const values = [user_id];
     const { rows } = await db.query(query, values);
 
