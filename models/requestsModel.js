@@ -238,6 +238,16 @@ const handleRequestResponse = async (requestId, userId, action) => {
       `;
       const shareValues = [request.additional_data.deckId, request.receiver_id, request.additional_data.permissionLevel];
       await db.query(shareQuery, shareValues);
+
+      const userDeckStatusQuery = `
+        INSERT INTO user_deck_status (user_id, deck_id)
+        VALUES ($1, $2)
+        ON CONFLICT (user_id, deck_id) DO UPDATE
+        SET is_active = false
+        RETURNING *;
+      `;
+      const userDeckStatusValues = [request.receiver_id, request.additional_data.deckId];
+      await db.query(userDeckStatusQuery, userDeckStatusValues);
     }
 
 

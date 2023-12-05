@@ -277,7 +277,8 @@ const createUserNotificationsChecksTable = async () => {
       user_id INTEGER NOT NULL,
       notifications_loaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       notifications_viewed_at TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE
+      FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE,
+      UNIQUE(user_id) 
     );
         `;
 

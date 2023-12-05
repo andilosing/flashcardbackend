@@ -89,9 +89,41 @@ const getAllLearningSessionsForUser = async (user_id) => {
   }
 };
 
+const getLearnedCardsAndTimeSinceDate = async (userId, sinceDate) => {
+  try {
+    const query = `
+      SELECT
+        ls.user_id,
+        u.username,
+        SUM(ls.cards_learned_count) AS total_cards_learned,
+        FLOOR(SUM(EXTRACT(EPOCH FROM (ls.end_learning_at - ls.start_learning_at))) / 60) AS total_learning_time_minutes
+      FROM
+        learning_sessions ls
+      JOIN
+        users u ON ls.user_id = u.user_id
+      WHERE
+        ls.user_id != $1 AND
+        ls.start_learning_at > $2
+      GROUP BY
+        ls.user_id, u.username;
+    `;
+    const values = [userId, sinceDate];
+    const { rows } = await db.query(query, values);
+
+    return rows; // Gibt eine Liste von gelernten Karten und Minuten für jeden Benutzer, ausgenommen den eigenen, seit dem angegebenen Datum zurück, inklusive Benutzernamen
+  } catch (error) {
+    throw new InternalServerError(
+      "Database error: cannot retrieve learned cards and time for other users."
+    );
+  }
+};
+
+
+
 module.exports = {
   startLearningSession,
   getLastLearningSessionForUser,
   updateLearningSession,
   getAllLearningSessionsForUser,
+  getLearnedCardsAndTimeSinceDate
 };

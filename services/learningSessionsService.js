@@ -1,7 +1,7 @@
 const { InternalServerError } = require("../errors/customErrors");
 const learningSessionsModel = require("../models/learningSessionsModel"); 
 
-const SESSION_THRESHOLD = 5 * 60 * 1000;
+const SESSION_THRESHOLD = 2 * 60 * 1000;
 
  const manageLearningSession = async (user_id) => {
     try {
