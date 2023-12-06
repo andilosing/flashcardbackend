@@ -40,12 +40,26 @@ const updateLastLogin = async (userId) => {
     }
 };
 
+const getAllUsersExceptCurrent = async (currentUserId) => {
+    try {
+        const query = 'SELECT user_id, username FROM users WHERE user_id != $1';
+        const values = [currentUserId];
+        const result = await db.query(query, values);
+        return result.rows;
+    } catch (error) {
+        console.error('Error retrieving all users except current:', error);
+        throw new InternalServerError();
+    }
+};
+
+
 
 
 module.exports = {
     getUserFromId,
     getUserFromEmail,
     getUserFromUsername,
-    updateLastLogin
+    updateLastLogin,
+    getAllUsersExceptCurrent
 
 }

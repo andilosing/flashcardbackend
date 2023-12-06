@@ -19,11 +19,12 @@ const login = async (username, password) => {
     const savedToken = await tokensModel.saveToken(user.user_id, token);
 
     return {
-        user: user,
+        user: { user_id: user.user_id, username: user.username},
         token: savedToken.token,
         expires_at: savedToken.expires_at
     };
     } catch (error) {
+        console.log(error)
         throw new InternalServerError("Error during login");
     }
     
@@ -37,7 +38,24 @@ const logout = async (token) => {
     }
 };
 
+const getAllUsersExceptCurrent = async (currentUserId) => {
+    try {
+        const users = await userModel.getAllUsersExceptCurrent(currentUserId);
+  
+        if (!users) {
+            throw new ValidationError("No other users found.");
+        }
+  
+        return users;
+    } catch (error) {
+        console.error('Error retrieving users:', error);
+        throw new InternalServerError("Error retrieving other users.");
+    }
+  }
+  
+
 module.exports = {
     login,
-    logout
+    logout,
+    getAllUsersExceptCurrent
 };

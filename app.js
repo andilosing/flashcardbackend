@@ -12,6 +12,7 @@ const deeplRoute = require("./routes/deeplRoute")
 const decksRoute = require("./routes/decksRoute")
 const requestsRoute = require("./routes/requestsRoute")
 const notificatoinsRoute = require("./routes/notificationsRoute")
+const usersRoute = require("./routes/usersRoute")
 
 const authTokenMiddleware = require("./middlewares/authTokenMiddleware")
 
@@ -46,5 +47,6 @@ app.use("/translate", authTokenMiddleware.authenticateJWT, deeplRoute)
 app.use("/decks", authTokenMiddleware.authenticateJWT, decksRoute)
 app.use("/requests", authTokenMiddleware.authenticateJWT, requestsRoute)
 app.use("/notifications", authTokenMiddleware.authenticateJWT, notificatoinsRoute)
+app.use("/users", authTokenMiddleware.authenticateJWT, usersRoute)
 
 app.listen(PORT, () => console.log(`Server is running on PORT ${PORT}.`))
