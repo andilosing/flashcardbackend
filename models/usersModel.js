@@ -42,7 +42,7 @@ const updateLastLogin = async (userId) => {
 
 const getAllUsersExceptCurrent = async (currentUserId) => {
     try {
-        const query = 'SELECT user_id, username FROM users WHERE user_id != $1';
+        const query = 'SELECT user_id, username FROM users WHERE user_id != $1 ORDER BY username ASC';
         const values = [currentUserId];
         const result = await db.query(query, values);
         return result.rows;

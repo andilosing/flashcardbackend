@@ -42,11 +42,22 @@ const getAllUsersExceptCurrent = async (currentUserId) => {
     try {
         const users = await userModel.getAllUsersExceptCurrent(currentUserId);
   
-        if (!users) {
+        return users;
+    } catch (error) {
+        console.error('Error retrieving users:', error);
+        throw new InternalServerError("Error retrieving other users.");
+    }
+  }
+
+  const getLoggedInUser = async (userId) => {
+    try {
+        const user = await userModel.getUserFromId(userId);
+  
+        if (!user) {
             throw new ValidationError("No other users found.");
         }
   
-        return users;
+        return { user_id: user.user_id, username: user.username};
     } catch (error) {
         console.error('Error retrieving users:', error);
         throw new InternalServerError("Error retrieving other users.");
@@ -57,5 +68,6 @@ const getAllUsersExceptCurrent = async (currentUserId) => {
 module.exports = {
     login,
     logout,
-    getAllUsersExceptCurrent
+    getAllUsersExceptCurrent,
+    getLoggedInUser
 };

@@ -22,6 +22,27 @@ const getAllUsersExceptCurrent = async (req, res) => {
     }
   };
 
+  const getLoggedInUser = async (req, res) => {
+    try {
+        const userId = req.userId; 
+  
+        if (!userId) {
+            throw new BadRequestError("User ID is required.");
+        }
+  
+        const user = await authService.getLoggedInUser(userId);
+  
+        res.status(200).json({
+            message: "User retrieved successfully",
+            data: {user}
+        });
+    } catch (error) {
+        console.log(error);
+        handleErrors(error, res);
+    }
+  };
+
   module.exports = {
-    getAllUsersExceptCurrent
+    getAllUsersExceptCurrent,
+    getLoggedInUser
   };
