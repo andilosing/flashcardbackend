@@ -55,24 +55,66 @@ const updateCard = async (user_id, progress_id, currentStatus, difficulty) => {
   }
 };
 
+// const refillAndRetrieveDueCards = async (user_id) => {
+//   try {
+//     let dueCards = await learningStackModel.getDueCardsForUser(user_id, MAX_CARDS);
+
+//     if (dueCards.length < MAX_CARDS) {
+//       const cardsToAddCount = MAX_CARDS - dueCards.length;
+//       let availableCards = await cardsModel.getCardsNotInUserProgress(user_id);
+
+//       if (availableCards.length === 0) {
+        
+//       } else {
+//         const cardsToAdd = availableCards.slice(0, cardsToAddCount);
+//         for (const card of cardsToAdd) {
+//           await learningStackModel.addCardToUserProgress(user_id, card.card_id, 1);
+//         }
+//         dueCards = await learningStackModel.getDueCardsForUser(user_id, MAX_CARDS);
+//       }
+//     }
+//     shuffleArray(dueCards);
+//     return dueCards;
+//   } catch (error) {
+//     if (error.customError) {
+//       throw error;
+//     } else {
+//       throw new InternalServerError("Error refilling and retrieving due cards");
+//     }
+//   }
+// };
+
+
 const refillAndRetrieveDueCards = async (user_id) => {
   try {
-    let dueCards = await learningStackModel.getDueCardsForUser(user_id, MAX_CARDS);
+    // Hol zunächst fällige Karten mit review_count über 0
+    let dueCards = await learningStackModel.getDueCardsForUser(user_id, MAX_CARDS, 'nonZero');
 
+    // Liste für zusätzliche Karten mit review_count von 0
+    let zeroReviewCountCards = [];
+
+    // Wenn die maximale Anzahl von Karten nicht erreicht ist, versuche, Karten mit review_count von 0 zu holen
     if (dueCards.length < MAX_CARDS) {
-      const cardsToAddCount = MAX_CARDS - dueCards.length;
-      let availableCards = await cardsModel.getCardsNotInUserProgress(user_id);
-
-      if (availableCards.length === 0) {
-        
-      } else {
-        const cardsToAdd = availableCards.slice(0, cardsToAddCount);
-        for (const card of cardsToAdd) {
-          await learningStackModel.addCardToUserProgress(user_id, card.card_id, 1);
-        }
-        dueCards = await learningStackModel.getDueCardsForUser(user_id, MAX_CARDS);
-      }
+      const additionalCardsNeeded = MAX_CARDS - dueCards.length;
+      zeroReviewCountCards = await learningStackModel.getDueCardsForUser(user_id, additionalCardsNeeded, 'zero');
     }
+
+    // Überprüfe, ob nach dem Hinzufügen von Karten mit review_count von 0 die maximale Anzahl erreicht wird
+    if (dueCards.length + zeroReviewCountCards.length < MAX_CARDS) {
+      const shortfall = MAX_CARDS - (dueCards.length + zeroReviewCountCards.length);
+      let availableCards = await cardsModel.getCardsNotInUserProgress(user_id, shortfall);
+
+      // Füge Karten zum Benutzerfortschritt hinzu, um die Lücke zu schließen
+      for (const card of availableCards) {
+        await learningStackModel.addCardToUserProgress(user_id, card.card_id, 1);
+      }
+      
+      zeroReviewCountCards = await learningStackModel.getDueCardsForUser(user_id, shortfall, 'zero');
+    }
+
+    dueCards = dueCards.concat(zeroReviewCountCards);
+
+    // Mische die Liste der fälligen Karten vor der Rückgabe
     shuffleArray(dueCards);
     return dueCards;
   } catch (error) {
@@ -83,7 +125,6 @@ const refillAndRetrieveDueCards = async (user_id) => {
     }
   }
 };
-
 
 function shuffleArray(array) {
   for (let i = array.length - 1; i > 0; i--) {

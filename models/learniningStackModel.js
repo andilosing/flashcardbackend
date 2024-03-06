@@ -27,30 +27,38 @@ const addCardToUserProgress = async (user_id, card_id, initial_status) => {
   }
 };
 
-const getDueCardsForUser = async (user_id, max_cards) => {
+const getDueCardsForUser = async (user_id, max_cards, reviewCountCriteria) => {
   try {
-    const query = `
-    SELECT 
-      ls.progress_id, 
-      ls.card_id,
-      ls.status, 
-      c.front_content, 
-      c.back_content
-    FROM 
-      learning_stack AS ls
-    INNER JOIN 
-      cards AS c ON ls.card_id = c.card_id
-    INNER JOIN
-      user_deck_status uds ON c.deck_id = uds.deck_id AND uds.user_id = $1
-    WHERE 
-      ls.user_id = $1 
-      AND ls.next_review_at <= NOW()
-      AND ls.is_active = true
-      AND uds.is_active = true
-    ORDER BY 
-      ls.next_review_at ASC
-    LIMIT $2;
+    let reviewCountFilter = '';
+    if (reviewCountCriteria === 'nonZero') {
+      reviewCountFilter = 'AND ls.review_count != 0';
+    } else if (reviewCountCriteria === 'zero') {
+      reviewCountFilter = 'AND ls.review_count = 0';
+    }
 
+    const query = `
+      SELECT 
+        ls.progress_id, 
+        ls.card_id,
+        ls.status, 
+        c.front_content, 
+        c.back_content,
+        ls.review_count
+      FROM 
+        learning_stack AS ls
+      INNER JOIN 
+        cards AS c ON ls.card_id = c.card_id
+      INNER JOIN
+        user_deck_status uds ON c.deck_id = uds.deck_id AND uds.user_id = $1
+      WHERE 
+        ls.user_id = $1 
+        AND ls.next_review_at <= NOW()
+        AND ls.is_active = true
+        AND uds.is_active = true
+        ${reviewCountFilter}
+      ORDER BY 
+        ls.next_review_at ASC
+      LIMIT $2;
     `;
     const values = [user_id, max_cards];
     const { rows } = await db.query(query, values);

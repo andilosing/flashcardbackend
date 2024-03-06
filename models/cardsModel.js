@@ -27,7 +27,7 @@ const addCard = async (user_id, deck_id, front_content, back_content) => {
 };
 
 
-const getCardsNotInUserProgress = async (user_id) => {
+const getCardsNotInUserProgress = async (user_id, limit) => {
   try {
     const query = `
       SELECT c.*
@@ -35,9 +35,11 @@ const getCardsNotInUserProgress = async (user_id) => {
       JOIN decks d ON c.deck_id = d.deck_id
       LEFT JOIN learning_stack ls ON c.card_id = ls.card_id AND ls.user_id = $1
       JOIN user_deck_status uds ON d.deck_id = uds.deck_id AND uds.user_id = $1
-      WHERE ls.progress_id IS NULL AND uds.is_active = true;
+      WHERE ls.progress_id IS NULL AND uds.is_active = true
+      ORDER BY c.created_at ASC
+      LIMIT $2
     `;
-    const values = [user_id];
+    const values = [user_id, limit];
     const { rows } = await db.query(query, values);
 
     return rows; // Gibt die Liste von Karten zurück, die noch nicht in user_progress für den gegebenen Benutzer sind und aus aktiven Decks stammen
