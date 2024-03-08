@@ -41,6 +41,7 @@ const SESSION_THRESHOLD = 2 * 60 * 1000;
   const calculateAverageLearningTime = async (user_id) => {
     try {
       const firstLearningDateResult = await learningSessionsModel.getFirstLearningDateForUser(user_id);
+      console.log("first learning date",firstLearningDateResult)
   
       if (!firstLearningDateResult.first_learning_date) {
         return {
@@ -52,7 +53,9 @@ const SESSION_THRESHOLD = 2 * 60 * 1000;
       const totalLearningTimeResult = await learningSessionsModel.getTotalLearningTimeSinceDate(user_id, firstLearningDateResult.first_learning_date);
       const totalLearningTimeMinutes = totalLearningTimeResult.total_learning_time_minutes || 0;
   
-      const today = new Date();
+      const today = new Date() ;
+      today.setDate(today.getDate() - 1);
+
       const firstLearningDate = new Date(firstLearningDateResult.first_learning_date);
       const daysSinceFirstLearningDay = Math.ceil((today - firstLearningDate) / (1000 * 60 * 60 * 24));
   
@@ -79,6 +82,7 @@ const SESSION_THRESHOLD = 2 * 60 * 1000;
   
       let streak = 0;
       const today = new Date();
+      today.setDate(today.getDate() - 1);
       today.setHours(0, 0, 0, 0);
   
       let lastDay = new Date(learningDays[0].session_date);
