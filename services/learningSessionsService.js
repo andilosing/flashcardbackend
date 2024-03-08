@@ -38,7 +38,83 @@ const SESSION_THRESHOLD = 2 * 60 * 1000;
     }
   };
 
+  const calculateAverageLearningTime = async (user_id) => {
+    try {
+      const firstLearningDateResult = await learningSessionsModel.getFirstLearningDateForUser(user_id);
+  
+      if (!firstLearningDateResult.first_learning_date) {
+        return {
+          message: "No learning session available",
+          averageLearningTimePerDayMin: 0 
+        };
+      }
+  
+      const totalLearningTimeResult = await learningSessionsModel.getTotalLearningTimeSinceDate(user_id, firstLearningDateResult.first_learning_date);
+      const totalLearningTimeMinutes = totalLearningTimeResult.total_learning_time_minutes || 0;
+  
+      const today = new Date();
+      const firstLearningDate = new Date(firstLearningDateResult.first_learning_date);
+      const daysSinceFirstLearningDay = Math.ceil((today - firstLearningDate) / (1000 * 60 * 60 * 24));
+  
+      const averageLearningTimePerDayMin = daysSinceFirstLearningDay > 0 ? totalLearningTimeMinutes / daysSinceFirstLearningDay : 0;
+  
+      return {
+        averageLearningTimePerDayMin: Math.floor(averageLearningTimePerDayMin) 
+      };
+    } catch (error) {
+      if (error.customError) {
+        throw error;
+      } else {
+        throw new InternalServerError("Error calculating average learning time");
+      }
+    }
+  };
+
+  const calculateLearningStreak = async (user_id) => {
+    try {
+      const learningDays = await learningSessionsModel.getConsecutiveLearningDays(user_id);
+      if (learningDays.length === 0) {
+        return 0; 
+      }
+  
+      let streak = 0;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+  
+      let lastDay = new Date(learningDays[0].session_date);
+      lastDay.setHours(0, 0, 0, 0);
+  
+      const diffInDaysToToday = (today - lastDay) / (1000 * 60 * 60 * 24);
+  
+      if (diffInDaysToToday < 2) {
+        streak = 1;
+      }
+  
+      for (let i = 1; i < learningDays.length; i++) {
+        const currentDay = new Date(learningDays[i].session_date);
+        currentDay.setHours(0, 0, 0, 0); 
+        const diffInDays = (lastDay - currentDay) / (1000 * 60 * 60 * 24);
+  
+        if (diffInDays === 1) {
+          streak++;
+        } else {
+          break; 
+        }
+        lastDay = currentDay; 
+      }
+      return streak;
+    } catch (error) {
+      console.log(error);
+      throw new InternalServerError("Error calculating learning streak.");
+    }
+  };
+  
+  
+  
+
   module.exports = {
     manageLearningSession,
-    getAllLearningSessions
+    getAllLearningSessions,
+    calculateAverageLearningTime,
+    calculateLearningStreak
   }

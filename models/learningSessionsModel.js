@@ -78,10 +78,9 @@ const getAllLearningSessionsForUser = async (user_id) => {
       ORDER BY
         session_date DESC;
       `;
-      
+
     const values = [user_id];
     const { rows } = await db.query(query, values);
-
     return rows; // Gibt eine Liste von Lernsessions pro Tag für den gegebenen Benutzer zurück
   } catch (error) {
     throw new InternalServerError(
@@ -119,12 +118,71 @@ const getLearnedCardsAndTimeSinceDate = async (userId, sinceDate) => {
   }
 };
 
+const getFirstLearningDateForUser = async (user_id) => {
+  try {
+    const query = `
+      SELECT MIN(DATE(start_learning_at AT TIME ZONE 'Europe/Berlin')) AS first_learning_date
+      FROM learning_sessions
+      WHERE user_id = $1;
+    `;
+    const values = [user_id];
+    const { rows } = await db.query(query, values);
+    return rows[0]; // Gibt das Datum des ersten Lerntags zurück
+  } catch (error) {
+    throw new InternalServerError(
+      "Database error: cannot retrieve first learning date."
+    );
+  }
+};
 
+const getTotalLearningTimeSinceDate = async (user_id, sinceDate) => {
+  try {
+    const query = `
+      SELECT
+        FLOOR(SUM(EXTRACT(EPOCH FROM (end_learning_at - start_learning_at))) / 60) AS total_learning_time_minutes
+      FROM
+        learning_sessions
+      WHERE
+        user_id = $1 AND
+        DATE(start_learning_at AT TIME ZONE 'Europe/Berlin') >= $2;
+    `;
+    const values = [user_id, sinceDate];
+    const { rows } = await db.query(query, values);
+    return rows[0]; // Gibt die gesamte Lernzeit in Minuten zurück
+  } catch (error) {
+    throw new InternalServerError(
+      "Database error: cannot retrieve total learning time since date."
+    );
+  }
+};
+
+const getConsecutiveLearningDays = async (user_id) => {
+  try {
+    const query = `
+    SELECT DISTINCT DATE(start_learning_at) AS session_date
+      FROM learning_sessions
+      WHERE user_id = $1
+      ORDER BY DATE(start_learning_at) DESC;
+    `;
+    const values = [user_id];
+    const { rows } = await db.query(query, values);
+
+    return rows; // Gibt alle Lernsession-Tage in absteigender Reihenfolge zurück
+  } catch (error) {
+    console.log(error);
+    throw new InternalServerError(
+      "Database error: cannot retrieve learning sessions days."
+    );
+  }
+};
 
 module.exports = {
   startLearningSession,
   getLastLearningSessionForUser,
   updateLearningSession,
   getAllLearningSessionsForUser,
-  getLearnedCardsAndTimeSinceDate
+  getLearnedCardsAndTimeSinceDate,
+  getFirstLearningDateForUser,
+  getTotalLearningTimeSinceDate,
+  getConsecutiveLearningDays,
 };
