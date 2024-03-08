@@ -166,7 +166,6 @@ const getConsecutiveLearningDays = async (user_id) => {
     `;
     const values = [user_id];
     const { rows } = await db.query(query, values);
-    console.log(rows)
     return rows; // Gibt alle Lernsession-Tage in absteigender Reihenfolge zurück
    
   } catch (error) {
