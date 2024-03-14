@@ -17,9 +17,9 @@ const getDecksByUserId = async (user_id) => {
         COUNT(DISTINCT CASE WHEN ls.user_id = $1 THEN ls.card_id ELSE NULL END)::int AS learning_stack_count,
         SUM(CASE WHEN ls.next_review_at <= NOW() AND ls.review_count = 0 AND ls.user_id = $1 THEN 1 ELSE 0 END)::int AS queue_cards_count,
         SUM(CASE WHEN ls.next_review_at <= NOW() AND ls.review_count > 0 AND ls.user_id = $1 THEN 1 ELSE 0 END)::int AS due_cards_count,
-        SUM(CASE WHEN ls.status BETWEEN 1 AND 4 AND ls.user_id = $1 THEN 1 ELSE 0 END)::int AS bad_status_count,
-        SUM(CASE WHEN ls.status BETWEEN 5 AND 7 AND ls.user_id = $1 THEN 1 ELSE 0 END)::int AS mid_status_count,
-        SUM(CASE WHEN ls.status BETWEEN 8 AND 10 AND ls.user_id = $1 THEN 1 ELSE 0 END)::int AS good_status_count,
+        SUM(CASE WHEN ls.status BETWEEN 1 AND 8 AND ls.user_id = $1 THEN 1 ELSE 0 END)::int AS bad_status_count,
+        SUM(CASE WHEN ls.status BETWEEN 9 AND 13 AND ls.user_id = $1 THEN 1 ELSE 0 END)::int AS mid_status_count,
+        SUM(CASE WHEN ls.status BETWEEN 14 AND 20 AND ls.user_id = $1 THEN 1 ELSE 0 END)::int AS good_status_count,
         TO_CHAR(d.created_at, 'DD TMMonth YYYY') AS created_at,
         (ds.shared_with_user_id IS NOT NULL) AS is_shared,
         COALESCE(uds.is_active, NULL) AS is_active
