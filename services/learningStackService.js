@@ -1,14 +1,17 @@
 const { InternalServerError } = require("../errors/customErrors");
-const learningStackModel = require("../models/learniningStackModel"); 
-const cardsModel = require("../models/cardsModel")
-const learningSessionsService = require("./learningSessionsService")
+const learningStackModel = require("../models/learniningStackModel");
+const cardsModel = require("../models/cardsModel");
+const learningSessionsService = require("./learningSessionsService");
 
 const MAX_CARDS = 10;
 
-
 const addCardToLearningStack = async (user_id, card_id, initial_status) => {
   try {
-    const progress = await learningStackModel.addCardToLearningStack(user_id, card_id, initial_status);
+    const progress = await learningStackModel.addCardToLearningStack(
+      user_id,
+      card_id,
+      initial_status
+    );
     return progress;
   } catch (error) {
     if (error.customError) {
@@ -19,10 +22,12 @@ const addCardToLearningStack = async (user_id, card_id, initial_status) => {
   }
 };
 
-
 const getDueCards = async (user_id) => {
   try {
-    const dueCards = await learningStackModel.getDueCardsForUser(user_id, MAX_CARDS);
+    const dueCards = await learningStackModel.getDueCardsForUser(
+      user_id,
+      MAX_CARDS
+    );
     return dueCards;
   } catch (error) {
     if (error.customError) {
@@ -33,7 +38,6 @@ const getDueCards = async (user_id) => {
   }
 };
 
-
 const updateCard = async (user_id, progress_id, currentStatus, difficulty) => {
   try {
     const newStatus = calculateNewStatus(currentStatus, difficulty);
@@ -41,9 +45,12 @@ const updateCard = async (user_id, progress_id, currentStatus, difficulty) => {
     const nextReviewDate = getNextReviewDate(newStatus);
 
     const updatedCardId = await learningStackModel.updateCard(
-      progress_id, newStatus, nextReviewDate);
+      progress_id,
+      newStatus,
+      nextReviewDate
+    );
 
-    await learningSessionsService.manageLearningSession(user_id)
+    await learningSessionsService.manageLearningSession(user_id);
 
     return updatedCardId;
   } catch (error) {
@@ -55,40 +62,14 @@ const updateCard = async (user_id, progress_id, currentStatus, difficulty) => {
   }
 };
 
-// const refillAndRetrieveDueCards = async (user_id) => {
-//   try {
-//     let dueCards = await learningStackModel.getDueCardsForUser(user_id, MAX_CARDS);
-
-//     if (dueCards.length < MAX_CARDS) {
-//       const cardsToAddCount = MAX_CARDS - dueCards.length;
-//       let availableCards = await cardsModel.getCardsNotInUserProgress(user_id);
-
-//       if (availableCards.length === 0) {
-        
-//       } else {
-//         const cardsToAdd = availableCards.slice(0, cardsToAddCount);
-//         for (const card of cardsToAdd) {
-//           await learningStackModel.addCardToUserProgress(user_id, card.card_id, 1);
-//         }
-//         dueCards = await learningStackModel.getDueCardsForUser(user_id, MAX_CARDS);
-//       }
-//     }
-//     shuffleArray(dueCards);
-//     return dueCards;
-//   } catch (error) {
-//     if (error.customError) {
-//       throw error;
-//     } else {
-//       throw new InternalServerError("Error refilling and retrieving due cards");
-//     }
-//   }
-// };
-
-
 const refillAndRetrieveDueCards = async (user_id) => {
   try {
     // Hol zunächst fällige Karten mit review_count über 0
-    let dueCards = await learningStackModel.getDueCardsForUser(user_id, MAX_CARDS, 'nonZero');
+    let dueCards = await learningStackModel.getDueCardsForUser(
+      user_id,
+      MAX_CARDS,
+      "nonZero"
+    );
 
     // Liste für zusätzliche Karten mit review_count von 0
     let zeroReviewCountCards = [];
@@ -96,20 +77,36 @@ const refillAndRetrieveDueCards = async (user_id) => {
     // Wenn die maximale Anzahl von Karten nicht erreicht ist, versuche, Karten mit review_count von 0 zu holen
     if (dueCards.length < MAX_CARDS) {
       const additionalCardsNeeded = MAX_CARDS - dueCards.length;
-      zeroReviewCountCards = await learningStackModel.getDueCardsForUser(user_id, additionalCardsNeeded, 'zero');
+      zeroReviewCountCards = await learningStackModel.getDueCardsForUser(
+        user_id,
+        additionalCardsNeeded,
+        "zero"
+      );
     }
 
     // Überprüfe, ob nach dem Hinzufügen von Karten mit review_count von 0 die maximale Anzahl erreicht wird
     if (dueCards.length + zeroReviewCountCards.length < MAX_CARDS) {
-      const shortfall = MAX_CARDS - (dueCards.length + zeroReviewCountCards.length);
-      let availableCards = await cardsModel.getCardsNotInUserProgress(user_id, shortfall);
+      const shortfall =
+        MAX_CARDS - (dueCards.length + zeroReviewCountCards.length);
+      let availableCards = await cardsModel.getCardsNotInUserProgress(
+        user_id,
+        shortfall
+      );
 
       // Füge Karten zum Benutzerfortschritt hinzu, um die Lücke zu schließen
       for (const card of availableCards) {
-        await learningStackModel.addCardToUserProgress(user_id, card.card_id, 1);
+        await learningStackModel.addCardToUserProgress(
+          user_id,
+          card.card_id,
+          1
+        );
       }
-      
-      zeroReviewCountCards = await learningStackModel.getDueCardsForUser(user_id, shortfall, 'zero');
+
+      zeroReviewCountCards = await learningStackModel.getDueCardsForUser(
+        user_id,
+        shortfall,
+        "zero"
+      );
     }
 
     dueCards = dueCards.concat(zeroReviewCountCards);
@@ -133,7 +130,6 @@ function shuffleArray(array) {
   }
 }
 
-
 const getNextReviewDate = (status) => {
   const now = new Date();
   switch (status) {
@@ -143,27 +139,59 @@ const getNextReviewDate = (status) => {
       now.setMinutes(now.getMinutes() + 30);
       return now;
     case 3:
-      now.setMinutes(now.getHours() + 6);
+      now.setHours(now.getHours() + 6);
       return now;
     case 4:
-      now.setDate(now.getDate() + 1);
+      now.setHours(now.getHours() + 12);
       return now;
     case 5:
-      now.setDate(now.getDate() + 3);
+      now.setDate(now.getDate() + 1);
       return now;
     case 6:
-      now.setDate(now.getDate() + 7);
+      now.setDate(now.getDate() + 2);
       return now;
     case 7:
-      now.setDate(now.getDate() + 14);
+      now.setDate(now.getDate() + 3);
       return now;
     case 8:
-      now.setMonth(now.getMonth() + 1);
+      now.setDate(now.getDate() + 5);
       return now;
     case 9:
-      now.setMonth(now.getMonth() + 2);
+      now.setDate(now.getDate() + 7);
       return now;
     case 10:
+      now.setDate(now.getDate() + 9);
+      return now;
+    case 11:
+      now.setDate(now.getDate() + 12);
+      return now;
+    case 12:
+      now.setDate(now.getDate() + 15);
+      return now;
+    case 13:
+      now.setDate(now.getDate() + 19);
+      return now;
+    case 14:
+      now.setDate(now.getDate() + 23);
+      return now;
+    case 15:
+      now.setDate(now.getDate() + 27);
+      return now;
+    case 16:
+      now.setMonth(now.getMonth() + 1);
+      return now;
+    case 17:
+      now.setMonth(now.getMonth() + 1);
+      now.setDate(now.getDate() + 15);
+      return now;
+    case 18:
+      now.setMonth(now.getMonth() + 2);
+      return now;
+    case 19:
+      now.setMonth(now.getMonth() + 2);
+      now.setDate(now.getDate() + 15);
+      return now;
+    case 20:
       now.setMonth(now.getMonth() + 3);
       return now;
     default:
@@ -191,18 +219,29 @@ const calculateNewStatus = (currentStatus, difficulty) => {
       break;
   }
 
-  return Math.min(Math.max(newStatus, 1), 10);
+  return Math.min(Math.max(newStatus, 1), 20);
 };
 
 const setActiveStatusForCards = async (user_id, card_ids, is_active) => {
   try {
     for (const card_id of card_ids) {
-      const existingEntry = await learningStackModel.checkCardInLearningStack(user_id, card_id);
+      const existingEntry = await learningStackModel.checkCardInLearningStack(
+        user_id,
+        card_id
+      );
 
       if (existingEntry) {
-        await learningStackModel.updateCardActiveStatus(user_id, card_id, is_active);
+        await learningStackModel.updateCardActiveStatus(
+          user_id,
+          card_id,
+          is_active
+        );
       } else {
-        await learningStackModel.addCardToLearningStackWithStatus(user_id, card_id, is_active);
+        await learningStackModel.addCardToLearningStackWithStatus(
+          user_id,
+          card_id,
+          is_active
+        );
       }
     }
   } catch (error) {
@@ -211,14 +250,10 @@ const setActiveStatusForCards = async (user_id, card_ids, is_active) => {
   }
 };
 
-
-
-
-
 module.exports = {
   addCardToLearningStack,
   getDueCards,
   updateCard,
   refillAndRetrieveDueCards,
-  setActiveStatusForCards
+  setActiveStatusForCards,
 };
