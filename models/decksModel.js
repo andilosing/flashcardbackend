@@ -15,7 +15,8 @@ const getDecksByUserId = async (user_id) => {
         (d.user_id = $1) AS is_owner,  -- Hinzufügen der is_owner-Spalte
         COUNT(DISTINCT c.card_id)::int AS total_card_count,
         COUNT(DISTINCT CASE WHEN ls.user_id = $1 THEN ls.card_id ELSE NULL END)::int AS learning_stack_count,
-        SUM(CASE WHEN ls.next_review_at <= NOW() AND ls.user_id = $1 THEN 1 ELSE 0 END)::int AS due_cards_count,
+        SUM(CASE WHEN ls.next_review_at <= NOW() AND ls.review_count = 0 AND ls.user_id = $1 THEN 1 ELSE 0 END)::int AS queue_cards_count,
+        SUM(CASE WHEN ls.next_review_at <= NOW() AND ls.review_count > 0 AND ls.user_id = $1 THEN 1 ELSE 0 END)::int AS due_cards_count,
         SUM(CASE WHEN ls.status BETWEEN 1 AND 4 AND ls.user_id = $1 THEN 1 ELSE 0 END)::int AS bad_status_count,
         SUM(CASE WHEN ls.status BETWEEN 5 AND 7 AND ls.user_id = $1 THEN 1 ELSE 0 END)::int AS mid_status_count,
         SUM(CASE WHEN ls.status BETWEEN 8 AND 10 AND ls.user_id = $1 THEN 1 ELSE 0 END)::int AS good_status_count,

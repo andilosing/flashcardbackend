@@ -5,6 +5,7 @@ const requestsModel = require("../models/requestsModel")
 const getDecksForUser = async (user_id) => {
   try {
     const decks = await decksModel.getDecksByUserId(user_id);
+    
 
     const decksWithPercentages = decks.map((deck) => {
       const {
