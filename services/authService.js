@@ -78,6 +78,8 @@ const getLoggedInUser = async (userId) => {
     const learnignStreakInDays =
       await learningSessionsService.calculateLearningStreak(userId);
 
+      
+
     return {
       user_id: user.user_id,
       username: user.username,
