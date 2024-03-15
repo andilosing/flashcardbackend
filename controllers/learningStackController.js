@@ -7,11 +7,25 @@ const getDueCards = async (req, res) => {
   try {
     const user_id = req.userId
 
+    let frontCardsCount = parseInt(req.query.frontCardsCount, 10);
+    let backCardsCount = parseInt(req.query.backCardsCount, 10);
+
+    
+
     if (!user_id) {
       throw new BadRequestError("User ID field is required.");
     }
 
-    const dueCards = await learningStackService.refillAndRetrieveDueCards(user_id);
+    if (isNaN(frontCardsCount) || isNaN(backCardsCount)) {
+      throw new BadRequestError("Both frontCardsCount and backCardsCount must be valid numbers.");
+    }
+
+    if (frontCardsCount < 0 || backCardsCount < 0) {
+      throw new BadRequestError("Both frontCardsCount and backCardsCount must be non-negative.");
+    }
+
+    const dueCards = await learningStackService.refillAndRetrieveDueCards(user_id, frontCardsCount, backCardsCount);
+
     res.status(200).json({
       message: "Due cards retrieved successfully",
       data: { learningStack: dueCards },

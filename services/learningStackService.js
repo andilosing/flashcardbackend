@@ -62,12 +62,13 @@ const updateCard = async (user_id, progress_id, currentStatus, difficulty) => {
   }
 };
 
-const refillAndRetrieveDueCards = async (user_id) => {
+const refillAndRetrieveDueCards = async (user_id, frontCardsCount, backCardsCount) => {
   try {
+    let maxCards = frontCardsCount + backCardsCount
     // Hol zunächst fällige Karten mit review_count über 0
     let dueCards = await learningStackModel.getDueCardsForUser(
       user_id,
-      MAX_CARDS,
+      maxCards,
       "nonZero"
     );
 
@@ -75,8 +76,8 @@ const refillAndRetrieveDueCards = async (user_id) => {
     let zeroReviewCountCards = [];
 
     // Wenn die maximale Anzahl von Karten nicht erreicht ist, versuche, Karten mit review_count von 0 zu holen
-    if (dueCards.length < MAX_CARDS) {
-      const additionalCardsNeeded = MAX_CARDS - dueCards.length;
+    if (dueCards.length < maxCards) {
+      const additionalCardsNeeded = maxCards - dueCards.length;
       zeroReviewCountCards = await learningStackModel.getDueCardsForUser(
         user_id,
         additionalCardsNeeded,
@@ -85,9 +86,9 @@ const refillAndRetrieveDueCards = async (user_id) => {
     }
 
     // Überprüfe, ob nach dem Hinzufügen von Karten mit review_count von 0 die maximale Anzahl erreicht wird
-    if (dueCards.length + zeroReviewCountCards.length < MAX_CARDS) {
+    if (dueCards.length + zeroReviewCountCards.length < maxCards) {
       const shortfall =
-        MAX_CARDS - (dueCards.length + zeroReviewCountCards.length);
+      maxCards - (dueCards.length + zeroReviewCountCards.length);
       let availableCards = await cardsModel.getCardsNotInUserProgress(
         user_id,
         shortfall
@@ -111,6 +112,10 @@ const refillAndRetrieveDueCards = async (user_id) => {
 
     dueCards = dueCards.concat(zeroReviewCountCards);
 
+    // Vertausche Front und Rückseite für die spezifizierte Anzahl von Kartenrückseiten
+    swapFrontAndBack(dueCards, frontCardsCount, backCardsCount);
+
+
     // Mische die Liste der fälligen Karten vor der Rückgabe
     shuffleArray(dueCards);
     return dueCards;
@@ -130,6 +135,19 @@ function shuffleArray(array) {
   }
 }
 
+
+function swapFrontAndBack(cards, frontCardsCount, backCardsCount) {
+ 
+  let startIndex = frontCardsCount;
+  let endIndex = startIndex + backCardsCount;
+
+  for (let i = startIndex; i < endIndex; i++) {
+    if (i < cards.length) { 
+      [cards[i].front_content, cards[i].back_content] = [cards[i].back_content, cards[i].front_content];
+    }
+  }
+
+}
 const getNextReviewDate = (status) => {
   const now = new Date();
   switch (status) {
