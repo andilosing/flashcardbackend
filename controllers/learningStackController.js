@@ -6,6 +6,7 @@ const learningStackService = require("../services/learningStackService");
 const getDueCards = async (req, res) => {
   try {
     const user_id = req.userId
+    const fetchAllDue = req.query.fetchAllDue === 'true'; 
 
     let frontCardsCount = parseInt(req.query.frontCardsCount, 10);
     let backCardsCount = parseInt(req.query.backCardsCount, 10);
@@ -24,7 +25,7 @@ const getDueCards = async (req, res) => {
       throw new BadRequestError("Both frontCardsCount and backCardsCount must be non-negative.");
     }
 
-    const dueCards = await learningStackService.refillAndRetrieveDueCards(user_id, frontCardsCount, backCardsCount);
+    const dueCards = await learningStackService.refillAndRetrieveDueCards(user_id, frontCardsCount, backCardsCount, fetchAllDue);
 
     res.status(200).json({
       message: "Due cards retrieved successfully",

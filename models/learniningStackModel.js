@@ -35,8 +35,8 @@ const getDueCardsForUser = async (user_id, max_cards, reviewCountCriteria) => {
     } else if (reviewCountCriteria === 'zero') {
       reviewCountFilter = 'AND ls.review_count = 0';
     }
-
-    const query = `
+    
+    let query = `
       SELECT 
         ls.progress_id, 
         ls.card_id,
@@ -58,17 +58,25 @@ const getDueCardsForUser = async (user_id, max_cards, reviewCountCriteria) => {
         ${reviewCountFilter}
       ORDER BY 
         ls.next_review_at ASC
-      LIMIT $2;
     `;
-    const values = [user_id, max_cards];
-    const { rows } = await db.query(query, values);
-    return rows; // Gibt die Liste der fälligen Karteikarten für den gegebenen Benutzer zurück
+
+   
+    if (max_cards !== null) {
+      query += ` LIMIT $2`;
+      const values = [user_id, max_cards];
+      const { rows } = await db.query(query, values);
+      return rows;
+    } else {
+      const { rows } = await db.query(query, [user_id]);
+      return rows;
+    }
   } catch (error) {
     throw new InternalServerError(
       `Database error: cannot retrieve due cards for user with ID ${user_id}.`
     );
   }
 };
+
 
 const updateCard = async (progress_id, status, next_review_at) => {
   try {
