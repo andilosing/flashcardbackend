@@ -64,19 +64,55 @@ const updateCard = async (user_id, progress_id, currentStatus, difficulty) => {
 
 
 
+
+
 const refillAndRetrieveDueCards = async (user_id, frontCardsCount, backCardsCount, fetchAllDue = false) => {
   try {
     let dueCards = [];
+    let maxCards = frontCardsCount + backCardsCount;
 
+    // Unabhängig von fetchAllDue zuerst alle fälligen Karten holen
+    dueCards = await learningStackModel.getDueCardsForUser(
+      user_id,
+      fetchAllDue ? null : maxCards,
+      "nonZero"
+    );
+
+    // Wenn fetchAllDue aktiviert ist ODER die Anzahl der geholten Karten kleiner als maxCards ist
+    if (fetchAllDue || dueCards.length < maxCards) {
+      let additionalCardsNeeded = maxCards - dueCards.length;
+      let zeroReviewCountCards = [];
+
+      // Karten mit review_count von 0 holen, wenn nötig
+      if (additionalCardsNeeded > 0) {
+        console.log("add cards needed: ",additionalCardsNeeded)
+        zeroReviewCountCards = await learningStackModel.getDueCardsForUser(
+          user_id,
+          additionalCardsNeeded,
+          "zero"
+        );
+      }
+
+
+      // Überprüfen, ob nach dem Hinzufügen der Karten mit review_count von 0 die maximale Anzahl erreicht wird
+      if (dueCards.length + zeroReviewCountCards.length < maxCards) {
+        const shortfall = maxCards - (dueCards.length + zeroReviewCountCards.length);
+        let availableCards = await cardsModel.getCardsNotInUserProgress(user_id, shortfall);
+
+        // Karten zum Benutzerfortschritt hinzufügen, um die Lücke zu schließen
+        for (const card of availableCards) {
+          await learningStackModel.addCardToUserProgress(user_id, card.card_id, 1);
+        }
+
+        zeroReviewCountCards = await learningStackModel.getDueCardsForUser(user_id, additionalCardsNeeded, "zero");
+      }
+
+      dueCards = dueCards.concat(zeroReviewCountCards);
+    }
+
+    // Wenn ursprünglich alle fälligen Karten angefordert wurden, Anzahl neu berechnen
     if (fetchAllDue) {
-      // Hol alle fälligen Karten mit review_count über 0
-      dueCards = await learningStackModel.getDueCardsForUser(
-        user_id,
-        null, 
-        "nonZero"
-      );
-
-      // Berechne das Verhältnis, falls die Werte vorhanden sind, sonst default 100:0
+      // Berechne das Verhältnis neu, falls die Werte vorhanden sind, sonst default 100:0
       const totalCards = dueCards.length;
       let ratioFront = frontCardsCount / (frontCardsCount + backCardsCount);
       let ratioBack = backCardsCount / (frontCardsCount + backCardsCount);
@@ -94,42 +130,6 @@ const refillAndRetrieveDueCards = async (user_id, frontCardsCount, backCardsCoun
       // Vertausche Front und Rückseite basierend auf dem neuen Verhältnis
       swapFrontAndBack(dueCards, newFrontCount, newBackCount);
     } else {
-      let maxCards = frontCardsCount + backCardsCount;
-      // Hol zunächst fällige Karten mit review_count über 0
-      dueCards = await learningStackModel.getDueCardsForUser(
-        user_id,
-        maxCards,
-        "nonZero"
-      );
-
-      // Liste für zusätzliche Karten mit review_count von 0
-      let zeroReviewCountCards = [];
-
-      // Wenn die maximale Anzahl von Karten nicht erreicht ist, versuche, Karten mit review_count von 0 zu holen
-      if (dueCards.length < maxCards) {
-        const additionalCardsNeeded = maxCards - dueCards.length;
-        zeroReviewCountCards = await learningStackModel.getDueCardsForUser(
-          user_id,
-          additionalCardsNeeded,
-          "zero"
-        );
-      }
-
-      // Überprüfe, ob nach dem Hinzufügen von Karten mit review_count von 0 die maximale Anzahl erreicht wird
-      if (dueCards.length + zeroReviewCountCards.length < maxCards) {
-        const shortfall = maxCards - (dueCards.length + zeroReviewCountCards.length);
-        let availableCards = await cardsModel.getCardsNotInUserProgress(user_id, shortfall);
-
-        // Füge Karten zum Benutzerfortschritt hinzu, um die Lücke zu schließen
-        for (const card of availableCards) {
-          await learningStackModel.addCardToUserProgress(user_id, card.card_id, 1);
-        }
-
-        zeroReviewCountCards = await learningStackModel.getDueCardsForUser(user_id, shortfall, "zero");
-      }
-
-      dueCards = dueCards.concat(zeroReviewCountCards);
-
       // Vertausche Front und Rückseite für die spezifizierte Anzahl von Kartenrückseiten
       swapFrontAndBack(dueCards, frontCardsCount, backCardsCount);
     }
