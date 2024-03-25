@@ -20,6 +20,8 @@ db.connect()
   .then(async () => {
     console.log("Connected to PostgreSQL");
 
+    await db.query("SET TIME ZONE 'Europe/Berlin';");
+
     await createUsersTable();
     await createDecksTable();
     await createCardsTable();
@@ -42,7 +44,7 @@ const createUsersTable = async () => {
             CREATE TABLE IF NOT EXISTS users (
                 user_id SERIAL PRIMARY KEY,
                 username VARCHAR(255) UNIQUE NOT NULL,
-                password VARCHAR(255) NOT NULL, -- Hier sollte ein gehashtes Passwort gespeichert werden
+                password VARCHAR(255) NOT NULL,
                 email VARCHAR(255) UNIQUE NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 last_login_at TIMESTAMP, -- Hält das Datum des letzten Logins fest
@@ -133,7 +135,7 @@ const createLearningStackTable = async () => {
                 progress_id SERIAL PRIMARY KEY,
                 user_id INTEGER NOT NULL,
                 card_id INTEGER NOT NULL,
-                status INTEGER NOT NULL CHECK (status BETWEEN 1 AND 10),
+                status INTEGER NOT NULL CHECK (status BETWEEN 1 AND 20),
                 last_reviewed_at TIMESTAMP,
                 next_review_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 review_count INTEGER DEFAULT 0,
@@ -184,9 +186,14 @@ const createPreferencesTable = async () => {
     const query = `
           CREATE TABLE IF NOT EXISTS preferences (
             preference_id SERIAL PRIMARY KEY,
-            user_id INTEGER NOT NULL,
-            max_cards INTEGER DEFAULT 20, 
-            daily_learning_goal INTEGER DEFAULT 60, 
+            user_id INTEGER NOT NULL UNIQUE,
+            front_cards_count INTEGER DEFAULT 10, 
+            back_cards_count INTEGER DEFAULT 0,
+            average_learning_time_good INTEGER DEFAULT 15,
+            average_learning_time_bad INTEGER DEFAULT 5, 
+            learning_streak_good INTEGER DEFAULT 7, 
+            learning_streak_bad INTEGER DEFAULT 2, 
+            fetch_all_due_mode TEXT CHECK (fetch_all_due_mode IN ('never', 'always', 'firstTimeDaily')) DEFAULT 'never',
             CONSTRAINT fk_user
                 FOREIGN KEY(user_id) 
                 REFERENCES users(user_id)

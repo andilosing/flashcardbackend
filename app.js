@@ -13,6 +13,7 @@ const decksRoute = require("./routes/decksRoute")
 const requestsRoute = require("./routes/requestsRoute")
 const notificatoinsRoute = require("./routes/notificationsRoute")
 const usersRoute = require("./routes/usersRoute")
+const preferencesRoute = require("./routes/preferencesRoute")
 
 const authTokenMiddleware = require("./middlewares/authTokenMiddleware")
 
@@ -30,7 +31,7 @@ app.use(express.static("public"));
 
 // const generatePasswod = async () => {
 //   const SALT_ROUNDS = 10;
-//   const hashedPassword = await bcrypt.hash("1", SALT_ROUNDS);
+//   const hashedPassword = await bcrypt.hash("andi111", SALT_ROUNDS);
 //   console.log(hashedPassword)
 
 // }
@@ -48,5 +49,6 @@ app.use("/decks", authTokenMiddleware.authenticateJWT, decksRoute)
 app.use("/requests", authTokenMiddleware.authenticateJWT, requestsRoute)
 app.use("/notifications", authTokenMiddleware.authenticateJWT, notificatoinsRoute)
 app.use("/users", authTokenMiddleware.authenticateJWT, usersRoute)
+app.use("/preferences", authTokenMiddleware.authenticateJWT, preferencesRoute)
 
 app.listen(PORT, () => console.log(`Server is running on PORT ${PORT}.`))

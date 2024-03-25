@@ -92,26 +92,25 @@ const calculateAverageLearningTime = async (user_id) => {
 
 const calculateLearningStreak = async (user_id) => {
   try {
-    const learningDays = await learningSessionsModel.getConsecutiveLearningDays(
-      user_id
-    );
+    const learningDays = await learningSessionsModel.getConsecutiveLearningDays(user_id);
     if (learningDays.length === 0) {
-      return 0;
+      return { streak: 0, lastLearningDay: null }; // Keine Lernsessions vorhanden
     }
 
     let streak = 0;
     const today = new Date();
-    //weil datum falsch aus db tabelle geholt wird um 1 tag
-    // today.setDate(today.getDate() - 1);
     today.setHours(0, 0, 0, 0);
 
     let lastDay = new Date(learningDays[0].session_date);
+    let lastLearningDay = lastDay
     lastDay.setHours(0, 0, 0, 0);
+
+    
 
     const diffInDaysToToday = (today - lastDay) / (1000 * 60 * 60 * 24);
 
     if (diffInDaysToToday > 1) {
-      return 0;
+      return { streak: 0, lastLearningDay: null }; // Die Strähne ist unterbrochen
     }
 
     if (diffInDaysToToday <= 1) {
@@ -129,14 +128,19 @@ const calculateLearningStreak = async (user_id) => {
         break;
       }
       lastDay = currentDay;
+      
     }
 
-    return streak;
+    return {
+      streak,
+      lastLearningDay: lastLearningDay, 
+    };
   } catch (error) {
     console.log(error);
     throw new InternalServerError("Error calculating learning streak.");
   }
 };
+
 
 module.exports = {
   manageLearningSession,

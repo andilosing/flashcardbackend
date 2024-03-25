@@ -25,8 +25,10 @@ const login = async (username, password) => {
     const learningTimeData =
     await learningSessionsService.calculateAverageLearningTime(user.user_id);
 
-  const learnignStreakInDays =
+  const learnignStreak =
     await learningSessionsService.calculateLearningStreak(user.user_id);
+
+
 
     return {
       user: {
@@ -34,7 +36,8 @@ const login = async (username, password) => {
         username: user.username,
         averageLearningTimePerDayMin:
         learningTimeData.averageLearningTimePerDayMin,
-        learnignStreakInDays: learnignStreakInDays,
+        learnignStreakInDays: learnignStreak.streak,
+        lastLearningDay: learnignStreak.lastLearningDay
       },
       token: savedToken.token,
       expires_at: savedToken.expires_at,
@@ -75,9 +78,8 @@ const getLoggedInUser = async (userId) => {
     const learningTimeData =
       await learningSessionsService.calculateAverageLearningTime(userId);
 
-    const learnignStreakInDays =
+    const learnignStreak =
       await learningSessionsService.calculateLearningStreak(userId);
-
       
 
     return {
@@ -85,7 +87,8 @@ const getLoggedInUser = async (userId) => {
       username: user.username,
       averageLearningTimePerDayMin:
         learningTimeData.averageLearningTimePerDayMin,
-      learnignStreakInDays: learnignStreakInDays,
+      learnignStreakInDays: learnignStreak.streak,
+      lastLearningDay: learnignStreak.lastLearningDay
     };
   } catch (error) {
     console.error("Error retrieving users:", error);
