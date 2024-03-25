@@ -2,7 +2,7 @@ const db = require("../db");
 const {
   InternalServerError,
   NotFoundError,
-  UnauthorizedError
+  UnauthorizedError,
 } = require("../errors/customErrors");
 
 const getDecksByUserId = async (user_id) => {
@@ -15,6 +15,7 @@ const getDecksByUserId = async (user_id) => {
         (d.user_id = $1) AS is_owner,  -- Hinzufügen der is_owner-Spalte
         COUNT(DISTINCT c.card_id)::int AS total_card_count,
         COUNT(DISTINCT CASE WHEN ls.user_id = $1 THEN ls.card_id ELSE NULL END)::int AS learning_stack_count,
+        COUNT(DISTINCT CASE WHEN ls.user_id = $1 AND NOT (ls.next_review_at <= NOW() AND ls.review_count = 0) THEN ls.card_id ELSE NULL END)::int AS learning_stack_count,
         SUM(CASE WHEN ls.next_review_at <= NOW() AND ls.review_count = 0 AND ls.user_id = $1 THEN 1 ELSE 0 END)::int AS queue_cards_count,
         SUM(CASE WHEN ls.next_review_at <= NOW() AND ls.review_count > 0 AND ls.user_id = $1 THEN 1 ELSE 0 END)::int AS due_cards_count,
         SUM(CASE WHEN ls.status BETWEEN 1 AND 8 AND ls.user_id = $1 THEN 1 ELSE 0 END)::int AS bad_status_count,
@@ -46,12 +47,10 @@ const getDecksByUserId = async (user_id) => {
     const { rows } = await db.query(query, values);
 
     if (rows.length === 0) {
-      throw new NotFoundError(
-        `No decks found for user with ID ${user_id}.`
-      );
+      throw new NotFoundError(`No decks found for user with ID ${user_id}.`);
     }
 
-    return rows; 
+    return rows;
   } catch (error) {
     console.log(error);
     throw new InternalServerError(
@@ -60,11 +59,9 @@ const getDecksByUserId = async (user_id) => {
   }
 };
 
-
-
-  const getDeckPermissions = async (deckId, userId) => {
-    try {
-      const query = `
+const getDeckPermissions = async (deckId, userId) => {
+  try {
+    const query = `
         SELECT 
           d.user_id = $2 as is_owner,
           ds.permission_level
@@ -75,69 +72,71 @@ const getDecksByUserId = async (user_id) => {
         WHERE 
           d.deck_id = $1;
       `;
-      const values = [deckId, userId];
-      const { rows } = await db.query(query, values);
-      return rows[0];
-    } catch (error) {
-      throw new InternalServerError("Database error: cannot retrieve deck permissions.");
-    }
-  };
+    const values = [deckId, userId];
+    const { rows } = await db.query(query, values);
+    return rows[0];
+  } catch (error) {
+    throw new InternalServerError(
+      "Database error: cannot retrieve deck permissions."
+    );
+  }
+};
 
-  const updateUserDeckStatus = async (userId, deckId, isActive) => {
-    try {
-      const query = `
+const updateUserDeckStatus = async (userId, deckId, isActive) => {
+  try {
+    const query = `
         UPDATE user_deck_status
         SET is_active = $3
         WHERE user_id = $1 AND deck_id = $2
         RETURNING *;
       `;
-      const values = [userId, deckId, isActive];
-      const result = await db.query(query, values);
-  
-      if (result.rows.length === 0) {
-        throw new NotFoundError("Deck status entry not found.");
-      }
-  
-      return result.rows[0];
-    } catch (error) {
-      console.log(error)
-      throw new InternalServerError("Database error: cannot update deck status.");
+    const values = [userId, deckId, isActive];
+    const result = await db.query(query, values);
+
+    if (result.rows.length === 0) {
+      throw new NotFoundError("Deck status entry not found.");
     }
-  };
 
-  const createDeck = async (userId, deckName) => {
-    try {
-        await db.query('BEGIN'); // Beginnen einer Transaktion
+    return result.rows[0];
+  } catch (error) {
+    console.log(error);
+    throw new InternalServerError("Database error: cannot update deck status.");
+  }
+};
 
-        const deckQuery = `
+const createDeck = async (userId, deckName) => {
+  try {
+    await db.query("BEGIN"); // Beginnen einer Transaktion
+
+    const deckQuery = `
             INSERT INTO decks (name, user_id)
             VALUES ($1, $2)
             RETURNING *;
         `;
-        const deckValues = [deckName, userId];
-        const deckResult = await db.query(deckQuery, deckValues);
-        const newDeck = deckResult.rows[0];
+    const deckValues = [deckName, userId];
+    const deckResult = await db.query(deckQuery, deckValues);
+    const newDeck = deckResult.rows[0];
 
-        const statusQuery = `
+    const statusQuery = `
             INSERT INTO user_deck_status (user_id, deck_id)
             VALUES ($1, $2)
             RETURNING *;
         `;
-        const statusValues = [userId, newDeck.deck_id];
-        const statusResult = await db.query(statusQuery, statusValues);
-        const newUserDeckStatus = statusResult.rows[0];
+    const statusValues = [userId, newDeck.deck_id];
+    const statusResult = await db.query(statusQuery, statusValues);
+    const newUserDeckStatus = statusResult.rows[0];
 
-        await db.query('COMMIT'); // Bestätigen der Transaktion
+    await db.query("COMMIT"); // Bestätigen der Transaktion
 
-        return {
-            deck: newDeck,
-            userDeckStatus: newUserDeckStatus
-        };
-    } catch (error) {
-        await db.query('ROLLBACK'); // Rollback im Fehlerfall
-        console.error("Error creating new deck:", error);
-        throw new InternalServerError("Database error: cannot create new deck.");
-    }
+    return {
+      deck: newDeck,
+      userDeckStatus: newUserDeckStatus,
+    };
+  } catch (error) {
+    await db.query("ROLLBACK"); // Rollback im Fehlerfall
+    console.error("Error creating new deck:", error);
+    throw new InternalServerError("Database error: cannot create new deck.");
+  }
 };
 
 const getDeckShares = async (deck_id, user_id) => {
@@ -148,7 +147,9 @@ const getDeckShares = async (deck_id, user_id) => {
     const owner = ownerCheckResult.rows[0]?.user_id;
 
     if (owner !== user_id) {
-      throw new UnauthorizedError("Nur der Besitzer des Decks kann die geteilten Informationen abrufen.");
+      throw new UnauthorizedError(
+        "Nur der Besitzer des Decks kann die geteilten Informationen abrufen."
+      );
     }
 
     // Abfrage der Informationen aus der deck_shares Tabelle
@@ -172,14 +173,16 @@ const getDeckShares = async (deck_id, user_id) => {
 
     return rows;
   } catch (error) {
-    console.error(`Database error: cannot retrieve shares for deck with ID ${deck_id}.`, error);
+    console.error(
+      `Database error: cannot retrieve shares for deck with ID ${deck_id}.`,
+      error
+    );
     throw error;
   }
 };
 
 const updateSharePermission = async (shareId, newPermissionLevel) => {
   try {
-
     const query = `
       UPDATE deck_shares
       SET permission_level = $1
@@ -217,15 +220,6 @@ const checkUserAuthorizationForShare = async (userId, shareId) => {
   }
 };
 
-
-
-
-
-
-  
-
-
-
 module.exports = {
   getDecksByUserId,
   getDeckPermissions,
@@ -233,5 +227,5 @@ module.exports = {
   createDeck,
   getDeckShares,
   updateSharePermission,
-  checkUserAuthorizationForShare
-}
+  checkUserAuthorizationForShare,
+};
